@@ -2,7 +2,7 @@ export default async (request, context) => {
   const url =
     "https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/1/query" +
     "?where=1%3D1" +
-    "&outFields=MPCNUM,PERTYPE,CASE_TYPE,CASE_TYPE_DESC,SUB_TYPE_DESC,PROJECT_DESC,LOCATION_DESC,PERSTATUS,MPC_DATE,MPC_COMPLETE,MPC_ACTION,MPC_ACTION_DESC,MPC_VOTE,BILLNUM,CA_OBJECT_ID,APP_NAME,APP_REP,CD,PER_LEAD,CAPTION" +
+    "&outFields=*" +
     "&outSR=4326" +
     "&f=json" +
     "&resultRecordCount=4000";
@@ -24,7 +24,6 @@ export default async (request, context) => {
 
     const text = await res.text();
 
-    // Sanity check: make sure we got JSON, not an HTML error page
     if (!text.startsWith("{")) {
       return new Response(
         JSON.stringify({ error: "ArcGIS returned non-JSON", preview: text.slice(0, 200) }),
@@ -46,3 +45,8 @@ export default async (request, context) => {
     );
   }
 };
+```
+
+The `netlify.toml` and `index.html` don't need to change — just update this one function file in GitHub. Once Netlify redeploys, test that same URL again:
+```
+https://YOUR-SITE.netlify.app/.netlify/functions/nashville-data
