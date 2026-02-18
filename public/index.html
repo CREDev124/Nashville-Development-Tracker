@@ -66,8 +66,9 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .cd-m{font-size:10px;color:var(--g400);font-family:'IBM Plex Mono',monospace;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
 .empty{padding:50px 24px;text-align:center}
 .empty p{font-size:13.5px;color:var(--g500);margin-bottom:6px}
-.empty span{font-size:12px;color:var(--g400);line-height:1.6}
+.empty span{font-size:12px;color:var(--g400);line-height:1.6;display:block}
 .empty a{color:var(--bl);text-decoration:none}
+.empty code{background:var(--g100);padding:2px 5px;border-radius:3px;font-size:11px}
 .sf{padding:7px 14px;font-size:9.5px;color:var(--g400);border-top:1px solid var(--g100);flex-shrink:0;text-align:center}
 .sf a{color:var(--bl);text-decoration:none}
 .ma{flex:1;position:relative}
@@ -108,7 +109,7 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .ldr{width:30px;height:30px;border:3px solid var(--g200);border-top-color:var(--bl);border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .ld p{margin-top:10px;font-size:13px;color:var(--g500)}
-.ld .sub{font-size:11px;color:var(--g400);margin-top:4px}
+.ld .sub{font-size:11px;color:var(--g400);margin-top:4px;max-width:350px;text-align:center;word-break:break-all}
 @media(max-width:860px){.sb{width:100%;min-width:100%;max-height:45vh;border-right:none;border-bottom:1px solid var(--g200)}.app{flex-direction:column}.dt{width:100%}}
 </style>
 </head>
@@ -140,57 +141,94 @@ const map=L.map('map',{zoomControl:false}).setView([36.162,-86.775],12);
 L.control.zoom({position:'topright'}).addTo(map);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',maxZoom:19}).addTo(map);
 
-// Try multiple paths to reach our Netlify serverless function
-async function load(){
-  const sources=[
-    {name:'Proxy (redirect)',  url:'/api/nashville-data'},
-    {name:'Proxy (direct)',    url:'/.netlify/functions/nashville-data'},
-    {name:'ArcGIS direct',     url:'https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/1/query?where=1%3D1&outFields=MPCNUM,PERTYPE,CASE_TYPE,CASE_TYPE_DESC,SUB_TYPE_DESC,PROJECT_DESC,LOCATION_DESC,PERSTATUS,MPC_DATE,MPC_COMPLETE,MPC_ACTION,MPC_ACTION_DESC,MPC_VOTE,BILLNUM,CA_OBJECT_ID,APP_NAME,APP_REP,CD,PER_LEAD,CAPTION&outSR=4326&f=json&resultRecordCount=4000'},
-  ];
-  for(const s of sources){
-    $('lm').textContent=`Trying ${s.name}…`;
-    $('ls').textContent=s.url.slice(0,60);
-    try{
-      const r=await fetch(s.url,{signal:AbortSignal.timeout(20000)});
-      if(!r.ok) throw new Error(`HTTP ${r.status}`);
-      const ct=r.headers.get('content-type')||'';
-      const txt=await r.text();
-      // Reject HTML responses (error pages, 404s)
-      if(txt.trim().startsWith('<!') || txt.trim().startsWith('<html')) throw new Error('Got HTML page, not JSON');
-      const j=JSON.parse(txt);
-      if(j.error) throw new Error(j.error.message||JSON.stringify(j.error));
-      if(!j.features?.length) throw new Error('No features returned');
+async function tryFetch(url, label){
+  $('lm').textContent='Trying '+label+'…';
+  $('ls').textContent=url;
+  const r=await fetch(url);
+  const status=r.status;
+  const text=await r.text();
 
-      all=j.features.filter(f=>f.geometry?.x!=null&&f.geometry?.y!=null).map((f,i)=>{
-        const a=f.attributes,dt=a.MPC_DATE?new Date(a.MPC_DATE):null;
-        return{id:a.CA_OBJECT_ID||i,cs:a.MPCNUM||'—',nm:a.PROJECT_DESC||a.MPCNUM||'Unnamed',
+  // If we got HTML back (404 page, error page), that's a failure
+  if(text.trim().charAt(0)==='<'){
+    throw new Error(label+' returned HTML (status '+status+'). First 100 chars: '+text.slice(0,100));
+  }
+
+  let json;
+  try{ json=JSON.parse(text); }catch(e){
+    throw new Error(label+' returned invalid JSON (status '+status+'). First 100 chars: '+text.slice(0,100));
+  }
+
+  // Check for ArcGIS or function-level error
+  if(json.error){
+    throw new Error(label+' returned error: '+JSON.stringify(json.error));
+  }
+
+  if(!json.features || !json.features.length){
+    throw new Error(label+' returned 0 features. Keys: '+Object.keys(json).join(','));
+  }
+
+  return json;
+}
+
+async function load(){
+  const errors=[];
+
+  // All URLs to try, in order of preference
+  const attempts=[
+    ['/.netlify/functions/nashville-data','Netlify Function'],
+    ['https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/1/query?where=1%3D1&outFields=MPCNUM,PERTYPE,CASE_TYPE,CASE_TYPE_DESC,SUB_TYPE_DESC,PROJECT_DESC,LOCATION_DESC,PERSTATUS,MPC_DATE,MPC_COMPLETE,MPC_ACTION,MPC_ACTION_DESC,MPC_VOTE,BILLNUM,CA_OBJECT_ID,APP_NAME,APP_REP,CD,PER_LEAD,CAPTION&outSR=4326&f=json&resultRecordCount=4000','ArcGIS Direct'],
+  ];
+
+  for(const [url,label] of attempts){
+    try{
+      const json=await tryFetch(url,label);
+
+      // Success — parse features
+      all=json.features.filter(f=>f.geometry&&f.geometry.x!=null&&f.geometry.y!=null).map((f,i)=>{
+        const a=f.attributes||{};
+        const dt=a.MPC_DATE?new Date(a.MPC_DATE):null;
+        return{
+          id:a.CA_OBJECT_ID||i,cs:a.MPCNUM||'—',nm:a.PROJECT_DESC||a.MPCNUM||'Unnamed',
           tp:a.CASE_TYPE_DESC||a.CASE_TYPE||'',tpS:a.CASE_TYPE||'',sub:a.SUB_TYPE_DESC||'',per:a.PERTYPE||'',
           st:a.PERSTATUS||'PENDING',addr:a.LOCATION_DESC||'—',bill:a.BILLNUM||'',
           dt,ds:dt?dt.toISOString().slice(0,10):'—',ts:dt?dt.getTime():0,
           lat:f.geometry.y,lng:f.geometry.x,
           act:a.MPC_ACTION_DESC||a.MPC_ACTION||'',vote:a.MPC_VOTE||'',
           app:a.APP_NAME||'',rep:a.APP_REP||'',cd:a.CD||'',lead:a.PER_LEAD||'',cap:a.CAPTION||'',
-          compl:a.MPC_COMPLETE?new Date(a.MPC_COMPLETE).toISOString().slice(0,10):''};
+          compl:a.MPC_COMPLETE?new Date(a.MPC_COMPLETE).toISOString().slice(0,10):''
+        };
       });
 
       $('ld').classList.add('h');
       $('sp').className='spill live';$('sp').textContent='Live';
-      $('stag').textContent=`${all.length} records`;
+      $('stag').textContent=all.length+' records';
       const sts=[...new Set(all.map(x=>x.st))];
       aF=new Set(sts);buildF(sts);buildLg(sts);render();
-      console.log(`Loaded ${all.length} cases via ${s.name}`);
+      console.log('SUCCESS via '+label+': '+all.length+' cases');
       return;
-    }catch(e){console.warn(`${s.name} failed:`,e.message)}
+    }catch(e){
+      const msg=label+': '+e.message;
+      console.error(msg);
+      errors.push(msg);
+    }
   }
+
+  // All failed — show detailed diagnostics
   $('ld').classList.add('h');
   $('sp').className='spill off';$('sp').textContent='Offline';
-  $('cl').innerHTML=`<div class="empty"><p>Unable to load data</p>
-    <span>The serverless proxy function may not have deployed correctly. Check your Netlify dashboard under <b>Functions</b> to verify <code>nashville-data</code> appears.<br><br>
-    Make sure your GitHub repo has this structure:<br>
-    <code>netlify.toml</code> (root)<br>
-    <code>public/index.html</code><br>
-    <code>netlify/functions/nashville-data.mjs</code><br><br>
-    <a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank">Nashville's Official Tracker →</a></span></div>`;
+  $('cl').innerHTML=`<div class="empty">
+    <p>Unable to load data</p>
+    <span style="text-align:left">
+      <b>Diagnostics:</b><br>
+      ${errors.map(e=>'• '+e).join('<br>')}<br><br>
+      <b>Quick test:</b> Open this URL directly in your browser to check if the function works:<br>
+      <a href="/.netlify/functions/nashville-data" target="_blank">${location.origin}/.netlify/functions/nashville-data</a><br><br>
+      <b>Expected:</b> JSON starting with <code>{"objectIdFieldName"...</code><br>
+      <b>If you see HTML or 404:</b> The function didn't deploy. Check Netlify dashboard → Functions.<br>
+      <b>If you see an error JSON:</b> The function deployed but couldn't reach Nashville's server.<br><br>
+      <a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank">Nashville's Official Tracker →</a>
+    </span>
+  </div>`;
 }
 
 function buildF(sts){
