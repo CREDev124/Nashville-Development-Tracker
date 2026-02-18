@@ -1,44 +1,41 @@
 export default async (request, context) => {
-  var headers = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*"
-  };
-
   try {
-    var params = new URLSearchParams({
-      where: "1=1",
-      outFields: "*",
-      outSR: "4326",
-      f: "json",
-      resultRecordCount: "4000",
-      returnGeometry: "true",
-      returnCentroid: "true"
-    });
+    var urls = [
+      "https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/1/query?where=1%3D1&outFields=*&f=json&returnGeometry=true",
+      "https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/0/query?where=1%3D1&outFields=*&f=json&returnGeometry=true",
+      "https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/1/query?where=OBJECTID%3E0&outFields=*&f=json&returnGeometry=true",
+      "https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/0/query?where=OBJECTID%3E0&outFields=*&f=json&returnGeometry=true"
+    ];
 
-    var url0 = "https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/0/query?" + params.toString();
-    var url1 = "https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/1/query?" + params.toString();
-
-    var res = await fetch(url1);
-    var text = await res.text();
-    var json = JSON.parse(text);
-
-    if (!json.features || json.features.length === 0) {
-      res = await fetch(url0);
-      text = await res.text();
+    for (var i = 0; i < urls.length; i++) {
+      var res = await fetch(urls[i]);
+      var text = await res.text();
+      try {
+        var json = JSON.parse(text);
+        if (json.features && json.features.length > 0) {
+          return new Response(text, {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+              "Cache-Control": "public, s-maxage=3600, max-age=3600"
+            }
+          });
+        }
+      } catch (e) {}
     }
 
-    return new Response(text, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "public, s-maxage=3600, max-age=3600"
-      }
+    return new Response(JSON.stringify({
+      error: "All queries returned 0 features",
+      lastResponse: text ? text.substring(0, 500) : "empty"
+    }), {
+      status: 502,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
     });
   } catch (err) {
     return new Response(
       JSON.stringify({ error: "Fetch failed: " + err.message }),
-      { status: 500, headers: headers }
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
     );
   }
 };
