@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nashville Development Tracker</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --w:#fff;--g50:#f8f9fb;--g100:#f1f3f5;--g200:#e4e7eb;--g300:#cdd1d8;
+  --g400:#9da3ae;--g500:#6b7280;--g600:#4b5563;--g700:#374151;--g800:#1f2937;--g900:#111827;
+  --bl:#2563eb;--bl-l:#eff4ff;--bl-s:#dbeafe;
+  --gn:#16a34a;--am:#d97706;--pu:#7c3aed;--sl:#64748b;--rd:#dc2626;
+  --sh:0 4px 12px rgba(0,0,0,.08);--r:10px;--rs:7px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50);color:var(--g800);height:100vh;overflow:hidden}
+.app{display:flex;height:100vh}
+.sb{width:400px;min-width:400px;background:var(--w);border-right:1px solid var(--g200);display:flex;flex-direction:column;z-index:600}
+.brand{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--g200);flex-shrink:0}
+.brand-l{display:flex;align-items:center;gap:10px}
+.brand-m{width:30px;height:30px;border-radius:8px;background:var(--bl);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px}
+.brand h1{font-size:15px;font-weight:700;color:var(--g900);letter-spacing:-.3px}
+.brand h1 span{font-weight:400;color:var(--g400)}
+.spill{display:flex;align-items:center;gap:5px;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;padding:4px 10px;border-radius:20px;transition:all .2s}
+.spill.live{color:var(--gn);background:#f0fdf4}
+.spill.live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gn);animation:bk 2s infinite}
+.spill.off{color:var(--rd);background:#fef2f2}
+@keyframes bk{0%,100%{opacity:1}50%{opacity:.3}}
+.sw{padding:10px 14px;border-bottom:1px solid var(--g200);flex-shrink:0}
+.sb2{display:flex;align-items:center;background:var(--g50);border:1.5px solid var(--g200);border-radius:var(--rs);padding:0 12px;transition:border-color .2s,box-shadow .2s}
+.sb2:focus-within{border-color:var(--bl);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.si{color:var(--g400);flex-shrink:0;display:flex}
+.sb2 input{flex:1;border:none;background:none;padding:9px 10px;font-family:inherit;font-size:13.5px;color:var(--g800);outline:none}
+.sb2 input::placeholder{color:var(--g400)}
+.sx{width:20px;height:20px;border-radius:50%;border:none;background:var(--g300);color:#fff;font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0}
+.sx.v{display:flex}
+.fb{padding:8px 14px;border-bottom:1px solid var(--g200);flex-shrink:0;display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none}
+.fb::-webkit-scrollbar{display:none}
+.fp{padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;border:1.5px solid var(--g200);background:var(--w);color:var(--g600);transition:all .15s;white-space:nowrap;user-select:none}
+.fp:hover{border-color:var(--g400)}
+.fp.on{background:var(--bl);color:#fff;border-color:var(--bl)}
+.fd{width:1px;height:18px;background:var(--g200);flex-shrink:0}
+.rb{padding:7px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--g100);flex-shrink:0}
+.rc{font-size:11.5px;color:var(--g500)}.rc strong{color:var(--g800);font-weight:600}
+.rc .st2{font-size:10px;color:var(--g400);margin-left:6px}
+.btn2{font-size:10.5px;color:var(--g500);background:none;border:1px solid var(--g200);padding:3px 10px;border-radius:5px;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn2:hover{border-color:var(--g400);color:var(--g700)}
+.cl{flex:1;overflow-y:auto;padding:6px 10px}
+.cl::-webkit-scrollbar{width:5px}
+.cl::-webkit-scrollbar-track{background:transparent}
+.cl::-webkit-scrollbar-thumb{background:var(--g200);border-radius:4px}
+.cd{padding:12px 14px;border-radius:var(--r);background:var(--w);margin-bottom:5px;cursor:pointer;border:1.5px solid var(--g100);transition:all .15s}
+.cd:hover{border-color:var(--g300);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.cd.on{border-color:var(--bl);background:var(--bl-l)}
+.cd-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:5px}
+.cd-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:4px;box-shadow:0 0 0 2.5px rgba(0,0,0,.04)}
+.cd-t{font-size:13px;font-weight:600;line-height:1.35;color:var(--g900);flex:1}
+.cd-pills{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px}
+.pill{font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:4px;letter-spacing:.15px}
+.pill-s{color:#fff}.pill-t{background:var(--g100);color:var(--g600)}
+.cd-addr{font-size:11.5px;color:var(--g500);line-height:1.3}
+.cd-m{font-size:10px;color:var(--g400);font-family:'IBM Plex Mono',monospace;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.empty{padding:50px 24px;text-align:center}
+.empty p{font-size:13.5px;color:var(--g500);margin-bottom:6px}
+.empty span{font-size:12px;color:var(--g400);line-height:1.6}
+.empty a{color:var(--bl);text-decoration:none}
+.sf{padding:7px 14px;font-size:9.5px;color:var(--g400);border-top:1px solid var(--g100);flex-shrink:0;text-align:center}
+.sf a{color:var(--bl);text-decoration:none}
+.ma{flex:1;position:relative}
+#map{width:100%;height:100%;background:#f2f3f0}
+.leaflet-container{background:#f2f3f0!important}
+.leaflet-control-zoom{border:none!important;box-shadow:var(--sh)!important;border-radius:var(--rs)!important;overflow:hidden}
+.leaflet-control-zoom a{width:34px!important;height:34px!important;line-height:34px!important;font-size:16px!important;color:var(--g700)!important;border-bottom:1px solid var(--g200)!important}
+.leaflet-control-zoom a:hover{background:var(--g50)!important}
+.mk{position:relative;display:flex;align-items:center;justify-content:center}
+.mk-d{width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .15s}
+.mk:hover .mk-d{transform:scale(1.35)}
+.leaflet-tooltip{font-family:'Instrument Sans',sans-serif!important;font-size:12px!important;padding:6px 10px!important;border-radius:6px!important;box-shadow:var(--sh)!important;border:1px solid var(--g200)!important}
+.dt{position:absolute;top:0;right:0;width:390px;height:100%;background:var(--w);border-left:1px solid var(--g200);z-index:900;display:none;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,.08);overflow:hidden}
+.dt.open{display:flex;animation:sI .25s ease}
+@keyframes sI{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+.dt-top{padding:18px;border-bottom:1px solid var(--g200);display:flex;align-items:flex-start;gap:12px}
+.dt-x{width:30px;height:30px;border-radius:var(--rs);border:1px solid var(--g200);background:var(--w);color:var(--g500);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;transition:all .15s}
+.dt-x:hover{background:var(--g50);color:var(--g800)}
+.dt-n{font-size:16px;font-weight:700;line-height:1.3;color:var(--g900);flex:1}
+.dt-bd{flex:1;overflow-y:auto;padding:18px}
+.dt-bg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.dt-r{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--g100);font-size:13px}
+.dt-l{color:var(--g500);font-weight:500}.dt-v{color:var(--g800);font-weight:500;text-align:right;max-width:55%;word-break:break-word}
+.dt-v.mo{font-family:'IBM Plex Mono',monospace;font-size:11.5px}
+.dt-lk{display:block;text-align:center;margin-top:18px;font-size:12px;color:var(--bl);text-decoration:none;padding:10px;background:var(--bl-l);border-radius:var(--rs);font-weight:500;transition:background .15s}
+.dt-lk:hover{background:var(--bl-s)}
+.lgb{position:absolute;bottom:18px;left:14px;z-index:800;background:var(--w);border:1px solid var(--g200);border-radius:var(--rs);padding:7px 12px;cursor:pointer;box-shadow:var(--sh);font-family:inherit;font-size:11.5px;font-weight:500;color:var(--g600);display:flex;align-items:center;gap:6px;transition:all .15s;user-select:none}
+.lgb:hover{background:var(--g50)}
+.lgd{display:flex;gap:3px}.lgd span{width:7px;height:7px;border-radius:50%}
+.lgp{position:absolute;bottom:50px;left:14px;z-index:800;background:var(--w);border:1px solid var(--g200);border-radius:var(--r);padding:14px;box-shadow:0 8px 30px rgba(0,0,0,.12);min-width:170px;display:none}
+.lgp.open{display:block;animation:fU .2s ease}
+@keyframes fU{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
+.lgh{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--g400);margin-bottom:5px}
+.lgi{display:flex;align-items:center;gap:7px;padding:2.5px 0;font-size:11.5px;color:var(--g600)}
+.lgs{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ld{position:absolute;inset:0;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2000;transition:opacity .3s}
+.ld.h{opacity:0;pointer-events:none}
+.ldr{width:30px;height:30px;border:3px solid var(--g200);border-top-color:var(--bl);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ld p{margin-top:10px;font-size:13px;color:var(--g500)}
+.ld .sub{font-size:11px;color:var(--g400);margin-top:4px}
+@media(max-width:860px){.sb{width:100%;min-width:100%;max-height:45vh;border-right:none;border-bottom:1px solid var(--g200)}.app{flex-direction:column}.dt{width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sb">
+  <div class="brand"><div class="brand-l"><div class="brand-m">N</div><h1>Dev Tracker <span>Nashville</span></h1></div><div class="spill" id="sp">Loading…</div></div>
+  <div class="sw"><div class="sb2"><svg class="si" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="q" placeholder="Search case #, project, address…" autocomplete="off"><button class="sx" id="qx">&times;</button></div></div>
+  <div class="fb" id="fb"></div>
+  <div class="rb"><span class="rc"><strong id="cnt">—</strong> cases <span class="st2" id="stag"></span></span><button class="btn2" id="srt">Newest ↓</button></div>
+  <div class="cl" id="cl"></div>
+  <div class="sf">Source: <a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank" rel="noopener">Metro Nashville Planning Dept</a></div>
+</div>
+<div class="ma">
+  <div id="map"></div>
+  <div class="ld" id="ld"><div class="ldr"></div><p id="lm">Loading Nashville development data…</p><div class="sub" id="ls"></div></div>
+  <div class="lgb" id="lgb"><div class="lgd"><span style="background:var(--gn)"></span><span style="background:var(--am)"></span><span style="background:var(--pu)"></span><span style="background:var(--sl)"></span></div>Legend</div>
+  <div class="lgp" id="lgp"><div class="lgh">Case Status</div><div id="lgi"></div></div>
+  <div class="dt" id="dt"><div class="dt-top"><div class="dt-n" id="dn"></div><button class="dt-x" id="dx">&times;</button></div><div class="dt-bd" id="db"></div></div>
+</div>
+</div>
+<script>
+const ST={NEW:{l:'New',c:'#16a34a'},PENDING:{l:'Pending',c:'#d97706'},CNCLACTIVE:{l:'Active',c:'#7c3aed'},CNCLCOMPLETE:{l:'Complete',c:'#64748b'},MPCCOMPLETE:{l:'MPC Done',c:'#94a3b8'}};
+function si(s){return ST[s]||{l:s||'Unknown',c:'#64748b'}}
+
+let all=[],aF=new Set(),qv='',dsc=true,sel=null,mks={},lgO=false;
+
+const map=L.map('map',{zoomControl:false}).setView([36.162,-86.775],12);
+L.control.zoom({position:'topright'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',maxZoom:19}).addTo(map);
+
+// Try multiple paths to reach our Netlify serverless function
+async function load(){
+  const sources=[
+    {name:'Proxy (redirect)',  url:'/api/nashville-data'},
+    {name:'Proxy (direct)',    url:'/.netlify/functions/nashville-data'},
+    {name:'ArcGIS direct',     url:'https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/1/query?where=1%3D1&outFields=MPCNUM,PERTYPE,CASE_TYPE,CASE_TYPE_DESC,SUB_TYPE_DESC,PROJECT_DESC,LOCATION_DESC,PERSTATUS,MPC_DATE,MPC_COMPLETE,MPC_ACTION,MPC_ACTION_DESC,MPC_VOTE,BILLNUM,CA_OBJECT_ID,APP_NAME,APP_REP,CD,PER_LEAD,CAPTION&outSR=4326&f=json&resultRecordCount=4000'},
+  ];
+  for(const s of sources){
+    $('lm').textContent=`Trying ${s.name}…`;
+    $('ls').textContent=s.url.slice(0,60);
+    try{
+      const r=await fetch(s.url,{signal:AbortSignal.timeout(20000)});
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      const ct=r.headers.get('content-type')||'';
+      const txt=await r.text();
+      // Reject HTML responses (error pages, 404s)
+      if(txt.trim().startsWith('<!') || txt.trim().startsWith('<html')) throw new Error('Got HTML page, not JSON');
+      const j=JSON.parse(txt);
+      if(j.error) throw new Error(j.error.message||JSON.stringify(j.error));
+      if(!j.features?.length) throw new Error('No features returned');
+
+      all=j.features.filter(f=>f.geometry?.x!=null&&f.geometry?.y!=null).map((f,i)=>{
+        const a=f.attributes,dt=a.MPC_DATE?new Date(a.MPC_DATE):null;
+        return{id:a.CA_OBJECT_ID||i,cs:a.MPCNUM||'—',nm:a.PROJECT_DESC||a.MPCNUM||'Unnamed',
+          tp:a.CASE_TYPE_DESC||a.CASE_TYPE||'',tpS:a.CASE_TYPE||'',sub:a.SUB_TYPE_DESC||'',per:a.PERTYPE||'',
+          st:a.PERSTATUS||'PENDING',addr:a.LOCATION_DESC||'—',bill:a.BILLNUM||'',
+          dt,ds:dt?dt.toISOString().slice(0,10):'—',ts:dt?dt.getTime():0,
+          lat:f.geometry.y,lng:f.geometry.x,
+          act:a.MPC_ACTION_DESC||a.MPC_ACTION||'',vote:a.MPC_VOTE||'',
+          app:a.APP_NAME||'',rep:a.APP_REP||'',cd:a.CD||'',lead:a.PER_LEAD||'',cap:a.CAPTION||'',
+          compl:a.MPC_COMPLETE?new Date(a.MPC_COMPLETE).toISOString().slice(0,10):''};
+      });
+
+      $('ld').classList.add('h');
+      $('sp').className='spill live';$('sp').textContent='Live';
+      $('stag').textContent=`${all.length} records`;
+      const sts=[...new Set(all.map(x=>x.st))];
+      aF=new Set(sts);buildF(sts);buildLg(sts);render();
+      console.log(`Loaded ${all.length} cases via ${s.name}`);
+      return;
+    }catch(e){console.warn(`${s.name} failed:`,e.message)}
+  }
+  $('ld').classList.add('h');
+  $('sp').className='spill off';$('sp').textContent='Offline';
+  $('cl').innerHTML=`<div class="empty"><p>Unable to load data</p>
+    <span>The serverless proxy function may not have deployed correctly. Check your Netlify dashboard under <b>Functions</b> to verify <code>nashville-data</code> appears.<br><br>
+    Make sure your GitHub repo has this structure:<br>
+    <code>netlify.toml</code> (root)<br>
+    <code>public/index.html</code><br>
+    <code>netlify/functions/nashville-data.mjs</code><br><br>
+    <a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank">Nashville's Official Tracker →</a></span></div>`;
+}
+
+function buildF(sts){
+  const b=$('fb');b.innerHTML='';
+  const a=mk('div','fp on');a.textContent='All';
+  a.onclick=()=>{aF=new Set(sts);sF();render()};b.appendChild(a);
+  b.appendChild(mk('div','fd'));
+  sts.forEach(s=>{const i=si(s),p=mk('div','fp on');p.textContent=i.l;p.dataset.s=s;
+    p.onclick=()=>{aF.has(s)?aF.delete(s):aF.add(s);sF();render()};b.appendChild(p);});
+}
+function sF(){
+  const ps=[...document.querySelectorAll('.fp[data-s]')];
+  document.querySelector('.fb .fp:first-child').classList.toggle('on',ps.every(p=>aF.has(p.dataset.s)));
+  ps.forEach(p=>p.classList.toggle('on',aF.has(p.dataset.s)));
+}
+function buildLg(sts){$('lgi').innerHTML=sts.map(s=>`<div class="lgi"><div class="lgs" style="background:${si(s).c}"></div>${si(s).l}</div>`).join('')}
+
+function flt(){
+  let l=all.filter(p=>aF.has(p.st));
+  if(qv){const ql=qv.toLowerCase();l=l.filter(p=>p.nm.toLowerCase().includes(ql)||p.cs.toLowerCase().includes(ql)||p.addr.toLowerCase().includes(ql)||p.tp.toLowerCase().includes(ql)||p.app.toLowerCase().includes(ql)||p.cd.toLowerCase().includes(ql))}
+  l.sort((a,b)=>dsc?b.ts-a.ts:a.ts-b.ts);return l;
+}
+
+function render(){const l=flt();$('cnt').textContent=l.length;rC(l);rM(l)}
+
+function rC(l){
+  const el=$('cl');
+  if(!l.length){el.innerHTML='<div class="empty"><p>No matching cases</p><span>Adjust your search or filters</span></div>';return}
+  const fr=document.createDocumentFragment();
+  l.forEach(p=>{
+    const s=si(p.st),c=mk('div','cd'+(sel===p.id?' on':''));
+    c.innerHTML=`<div class="cd-top"><div class="cd-dot" style="background:${s.c}"></div><div class="cd-t">${trn(p.nm,60)}</div></div>
+      <div class="cd-pills"><span class="pill pill-s" style="background:${s.c}">${s.l}</span>${p.tp?`<span class="pill pill-t">${p.tp}</span>`:''}</div>
+      <div class="cd-addr">${p.addr}</div>
+      <div class="cd-m"><span>${p.cs}</span>${p.ds!=='—'?`<span>${p.ds}</span>`:''}${p.cd?`<span>Dist ${p.cd}</span>`:''}</div>`;
+    c.onclick=()=>selP(p);fr.appendChild(c);
+  });
+  el.innerHTML='';el.appendChild(fr);
+}
+
+function rM(l){
+  Object.values(mks).forEach(m=>map.removeLayer(m));mks={};
+  l.filter(p=>p.lat&&p.lng).forEach(p=>{
+    const s=si(p.st),ic=L.divIcon({className:'mk',html:`<div class="mk-d" style="background:${s.c}"></div>`,iconSize:[12,12],iconAnchor:[6,6]});
+    const m=L.marker([p.lat,p.lng],{icon:ic}).addTo(map);
+    m.on('click',()=>selP(p));
+    m.bindTooltip(`<b>${p.cs}</b><br>${trn(p.nm,40)}`,{direction:'top',offset:[0,-8]});
+    mks[p.id]=m;
+  });
+}
+
+function selP(p){
+  sel=p.id;const s=si(p.st);$('dn').textContent=p.nm;
+  let h=`<div class="dt-bg"><span class="pill pill-s" style="background:${s.c}">${s.l}</span>${p.tp?`<span class="pill pill-t">${p.tp}</span>`:''}${p.sub?`<span class="pill pill-t">${p.sub}</span>`:''}</div>`;
+  h+=rw('Case #',p.cs,1);h+=rw('Location',p.addr);
+  if(p.ds!=='—')h+=rw('MPC Date',p.ds);
+  if(p.per)h+=rw('Permit Type',p.per);
+  if(p.act)h+=rw('MPC Action',p.act);
+  if(p.vote)h+=rw('MPC Vote',p.vote);
+  if(p.compl)h+=rw('Completed',p.compl);
+  if(p.bill)h+=rw('Ordinance #',p.bill,1);
+  if(p.app)h+=rw('Applicant',p.app);
+  if(p.rep)h+=rw('Representative',p.rep);
+  if(p.cd)h+=rw('Council District',p.cd);
+  if(p.lead)h+=rw('Staff Lead',p.lead);
+  if(p.lat&&p.lng)h+=rw('Coordinates',`${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`,1);
+  if(p.cap)h+=`<div style="margin-top:14px;padding:12px;background:var(--g50);border-radius:var(--rs);font-size:12px;color:var(--g600);line-height:1.5">${p.cap}</div>`;
+  h+=`<a class="dt-lk" href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank" rel="noopener">View on Nashville's Official Tracker →</a>`;
+  $('db').innerHTML=h;$('dt').classList.add('open');
+  if(p.lat&&p.lng)map.flyTo([p.lat,p.lng],15,{duration:.4});
+  document.querySelectorAll('.cd').forEach(c=>c.classList.remove('on'));
+  const idx=flt().findIndex(x=>x.id===p.id);
+  const cds=document.querySelectorAll('.cd');
+  if(cds[idx]){cds[idx].classList.add('on');cds[idx].scrollIntoView({behavior:'smooth',block:'nearest'})}
+}
+
+function $(id){return document.getElementById(id)}
+function mk(t,c){const e=document.createElement(t);e.className=c;return e}
+function trn(s,n){return(!s||s.length<=n)?s||'':s.slice(0,n-1)+'…'}
+function rw(l,v,m){return`<div class="dt-r"><span class="dt-l">${l}</span><span class="dt-v${m?' mo':''}">${v||'—'}</span></div>`}
+
+$('dx').onclick=()=>{$('dt').classList.remove('open');sel=null;document.querySelectorAll('.cd').forEach(c=>c.classList.remove('on'))};
+$('q').oninput=e=>{qv=e.target.value.trim();$('qx').classList.toggle('v',!!qv);render()};
+$('qx').onclick=()=>{$('q').value='';qv='';$('qx').classList.remove('v');render()};
+$('srt').onclick=()=>{dsc=!dsc;$('srt').textContent=dsc?'Newest ↓':'Oldest ↑';render()};
+$('lgb').onclick=()=>{lgO=!lgO;$('lgp').classList.toggle('open',lgO)};
+map.on('click',()=>{if(lgO){lgO=false;$('lgp').classList.remove('open')}});
+load();
+</script>
+</body>
+</html>
