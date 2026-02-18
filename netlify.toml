@@ -1,8 +1,6 @@
 [build]
   publish = "public"
-  functions = "netlify/functions"
 
-[[redirects]]
-  from = "/api/nashville-data"
-  to = "/.netlify/functions/nashville-data"
-  status = 200
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
