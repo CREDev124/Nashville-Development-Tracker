@@ -67,8 +67,6 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .empty{padding:50px 24px;text-align:center}
 .empty p{font-size:13.5px;color:var(--g500);margin-bottom:6px}
 .empty span{font-size:12px;color:var(--g400);line-height:1.6;display:block}
-.empty a{color:var(--bl);text-decoration:none}
-.empty code{background:var(--g100);padding:2px 5px;border-radius:3px;font-size:11px}
 .sf{padding:7px 14px;font-size:9.5px;color:var(--g400);border-top:1px solid var(--g100);flex-shrink:0;text-align:center}
 .sf a{color:var(--bl);text-decoration:none}
 .ma{flex:1;position:relative}
@@ -109,213 +107,253 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .ldr{width:30px;height:30px;border:3px solid var(--g200);border-top-color:var(--bl);border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .ld p{margin-top:10px;font-size:13px;color:var(--g500)}
-.ld .sub{font-size:11px;color:var(--g400);margin-top:4px;max-width:350px;text-align:center;word-break:break-all}
+.ld .sub{font-size:11px;color:var(--g400);margin-top:4px}
 @media(max-width:860px){.sb{width:100%;min-width:100%;max-height:45vh;border-right:none;border-bottom:1px solid var(--g200)}.app{flex-direction:column}.dt{width:100%}}
 </style>
 </head>
 <body>
 <div class="app">
 <div class="sb">
-  <div class="brand"><div class="brand-l"><div class="brand-m">N</div><h1>Dev Tracker <span>Nashville</span></h1></div><div class="spill" id="sp">Loading…</div></div>
-  <div class="sw"><div class="sb2"><svg class="si" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="q" placeholder="Search case #, project, address…" autocomplete="off"><button class="sx" id="qx">&times;</button></div></div>
+  <div class="brand"><div class="brand-l"><div class="brand-m">N</div><h1>Dev Tracker <span>Nashville</span></h1></div><div class="spill" id="sp">Loading</div></div>
+  <div class="sw"><div class="sb2"><svg class="si" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="q" placeholder="Search case #, project, address..." autocomplete="off"><button class="sx" id="qx">&times;</button></div></div>
   <div class="fb" id="fb"></div>
-  <div class="rb"><span class="rc"><strong id="cnt">—</strong> cases <span class="st2" id="stag"></span></span><button class="btn2" id="srt">Newest ↓</button></div>
+  <div class="rb"><span class="rc"><strong id="cnt">0</strong> cases</span><button class="btn2" id="srt">Newest</button></div>
   <div class="cl" id="cl"></div>
   <div class="sf">Source: <a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank" rel="noopener">Metro Nashville Planning Dept</a></div>
 </div>
 <div class="ma">
   <div id="map"></div>
-  <div class="ld" id="ld"><div class="ldr"></div><p id="lm">Loading Nashville development data…</p><div class="sub" id="ls"></div></div>
+  <div class="ld" id="ld"><div class="ldr"></div><p id="lm">Loading development data...</p><div class="sub" id="ls"></div></div>
   <div class="lgb" id="lgb"><div class="lgd"><span style="background:var(--gn)"></span><span style="background:var(--am)"></span><span style="background:var(--pu)"></span><span style="background:var(--sl)"></span></div>Legend</div>
   <div class="lgp" id="lgp"><div class="lgh">Case Status</div><div id="lgi"></div></div>
   <div class="dt" id="dt"><div class="dt-top"><div class="dt-n" id="dn"></div><button class="dt-x" id="dx">&times;</button></div><div class="dt-bd" id="db"></div></div>
 </div>
 </div>
 <script>
-const ST={NEW:{l:'New',c:'#16a34a'},PENDING:{l:'Pending',c:'#d97706'},CNCLACTIVE:{l:'Active',c:'#7c3aed'},CNCLCOMPLETE:{l:'Complete',c:'#64748b'},MPCCOMPLETE:{l:'MPC Done',c:'#94a3b8'}};
-function si(s){return ST[s]||{l:s||'Unknown',c:'#64748b'}}
+var ARCGIS_ONLINE = "https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services/Development_Tracker_Cases_view/FeatureServer/1/query";
+var FALLBACK_FN = "/.netlify/functions/nashville-data";
 
-let all=[],aF=new Set(),qv='',dsc=true,sel=null,mks={},lgO=false;
+var ST = {
+  NEW:          {l:"New",         c:"#16a34a"},
+  PENDING:      {l:"Pending",     c:"#d97706"},
+  CNCLACTIVE:   {l:"Active",      c:"#7c3aed"},
+  CNCLCOMPLETE: {l:"Complete",    c:"#64748b"},
+  MPCCOMPLETE:  {l:"MPC Done",    c:"#94a3b8"}
+};
+function si(s) { return ST[s] || {l: s || "Unknown", c: "#64748b"}; }
 
-const map=L.map('map',{zoomControl:false}).setView([36.162,-86.775],12);
-L.control.zoom({position:'topright'}).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',maxZoom:19}).addTo(map);
+var all = [], aF = new Set(), qv = "", dsc = true, sel = null, mks = {}, lgO = false;
 
-async function tryFetch(url, label){
-  $('lm').textContent='Trying '+label+'…';
-  $('ls').textContent=url;
-  const r=await fetch(url);
-  const status=r.status;
-  const text=await r.text();
+var map = L.map("map", {zoomControl: false}).setView([36.162, -86.775], 12);
+L.control.zoom({position: "topright"}).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  attribution: "OpenStreetMap, CARTO", maxZoom: 19
+}).addTo(map);
 
-  // If we got HTML back (404 page, error page), that's a failure
-  if(text.trim().charAt(0)==='<'){
-    throw new Error(label+' returned HTML (status '+status+'). First 100 chars: '+text.slice(0,100));
-  }
-
-  let json;
-  try{ json=JSON.parse(text); }catch(e){
-    throw new Error(label+' returned invalid JSON (status '+status+'). First 100 chars: '+text.slice(0,100));
-  }
-
-  // Check for ArcGIS or function-level error
-  if(json.error){
-    throw new Error(label+' returned error: '+JSON.stringify(json.error));
-  }
-
-  if(!json.features || !json.features.length){
-    throw new Error(label+' returned 0 features. Keys: '+Object.keys(json).join(','));
-  }
-
-  return json;
+function parseFeatures(json) {
+  if (!json.features || json.features.length === 0) return [];
+  return json.features.filter(function(f) {
+    return f.geometry && ((f.geometry.x != null && f.geometry.y != null) || (f.geometry.rings));
+  }).map(function(f, i) {
+    var a = f.attributes || {};
+    var dt = a.MPC_DATE ? new Date(a.MPC_DATE) : null;
+    var lat, lng;
+    if (f.geometry.y != null && f.geometry.x != null) {
+      lat = f.geometry.y; lng = f.geometry.x;
+    } else if (f.geometry.rings && f.geometry.rings[0]) {
+      var ring = f.geometry.rings[0];
+      var sx = 0, sy = 0;
+      for (var j = 0; j < ring.length; j++) { sx += ring[j][0]; sy += ring[j][1]; }
+      lng = sx / ring.length; lat = sy / ring.length;
+    }
+    return {
+      id: a.OBJECTID || a.CA_OBJECT_ID || a.ESRI_OID || i,
+      cs: a.MPCNUM || "",
+      nm: a.PROJECT_DESC || a.MPCNUM || "Unnamed",
+      tp: a.CASE_TYPE_DESC || a.CASE_TYPE || "",
+      sub: a.SUB_TYPE_DESC || "",
+      per: a.PERTYPE || "",
+      st: a.PERSTATUS || a.PSTAT || "PENDING",
+      addr: a.LOCATION_DESC || "",
+      bill: a.BILLNUM || "",
+      dt: dt,
+      ds: dt ? dt.toISOString().slice(0, 10) : "",
+      ts: dt ? dt.getTime() : 0,
+      lat: lat, lng: lng,
+      act: a.MPC_ACTION_DESC || a.MPC_ACTION || "",
+      vote: a.MPC_VOTE || "",
+      app: a.APP_NAME || "",
+      rep: a.APP_REP || "",
+      cd: a.CD || "",
+      lead: a.PER_LEAD || "",
+      cap: a.CAPTION || "",
+      compl: a.MPC_COMPLETE ? new Date(a.MPC_COMPLETE).toISOString().slice(0, 10) : ""
+    };
+  });
 }
 
-async function load(){
-  const errors=[];
-
-  // All URLs to try, in order of preference
-  const attempts=[
-    ['/.netlify/functions/nashville-data','Netlify Function'],
-    ['https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/1/query?where=1%3D1&outFields=MPCNUM,PERTYPE,CASE_TYPE,CASE_TYPE_DESC,SUB_TYPE_DESC,PROJECT_DESC,LOCATION_DESC,PERSTATUS,MPC_DATE,MPC_COMPLETE,MPC_ACTION,MPC_ACTION_DESC,MPC_VOTE,BILLNUM,CA_OBJECT_ID,APP_NAME,APP_REP,CD,PER_LEAD,CAPTION&outSR=4326&f=json&resultRecordCount=4000','ArcGIS Direct'],
+async function load() {
+  var sources = [
+    {
+      label: "ArcGIS Online",
+      url: ARCGIS_ONLINE + "?where=1%3D1&outFields=*&outSR=4326&f=json&resultRecordCount=4000&returnGeometry=true"
+    },
+    {
+      label: "Netlify Function",
+      url: FALLBACK_FN
+    }
   ];
 
-  for(const [url,label] of attempts){
-    try{
-      const json=await tryFetch(url,label);
+  for (var i = 0; i < sources.length; i++) {
+    var src = sources[i];
+    try {
+      $("lm").textContent = "Trying " + src.label + "...";
+      var res = await fetch(src.url);
+      var text = await res.text();
+      var json = JSON.parse(text);
+      if (json.error) continue;
+      var features = parseFeatures(json);
+      if (features.length === 0) continue;
 
-      // Success — parse features
-      all=json.features.filter(f=>f.geometry&&f.geometry.x!=null&&f.geometry.y!=null).map((f,i)=>{
-        const a=f.attributes||{};
-        const dt=a.MPC_DATE?new Date(a.MPC_DATE):null;
-        return{
-          id:a.CA_OBJECT_ID||i,cs:a.MPCNUM||'—',nm:a.PROJECT_DESC||a.MPCNUM||'Unnamed',
-          tp:a.CASE_TYPE_DESC||a.CASE_TYPE||'',tpS:a.CASE_TYPE||'',sub:a.SUB_TYPE_DESC||'',per:a.PERTYPE||'',
-          st:a.PERSTATUS||'PENDING',addr:a.LOCATION_DESC||'—',bill:a.BILLNUM||'',
-          dt,ds:dt?dt.toISOString().slice(0,10):'—',ts:dt?dt.getTime():0,
-          lat:f.geometry.y,lng:f.geometry.x,
-          act:a.MPC_ACTION_DESC||a.MPC_ACTION||'',vote:a.MPC_VOTE||'',
-          app:a.APP_NAME||'',rep:a.APP_REP||'',cd:a.CD||'',lead:a.PER_LEAD||'',cap:a.CAPTION||'',
-          compl:a.MPC_COMPLETE?new Date(a.MPC_COMPLETE).toISOString().slice(0,10):''
-        };
-      });
-
-      $('ld').classList.add('h');
-      $('sp').className='spill live';$('sp').textContent='Live';
-      $('stag').textContent=all.length+' records';
-      const sts=[...new Set(all.map(x=>x.st))];
-      aF=new Set(sts);buildF(sts);buildLg(sts);render();
-      console.log('SUCCESS via '+label+': '+all.length+' cases');
+      all = features;
+      $("ld").classList.add("h");
+      $("sp").className = "spill live";
+      $("sp").textContent = "Live";
+      var sts = [];
+      var stSet = {};
+      all.forEach(function(p) { if (!stSet[p.st]) { stSet[p.st] = true; sts.push(p.st); } });
+      aF = new Set(sts);
+      buildF(sts);
+      buildLg(sts);
+      render();
       return;
-    }catch(e){
-      const msg=label+': '+e.message;
-      console.error(msg);
-      errors.push(msg);
+    } catch (e) {
+      continue;
     }
   }
 
-  // All failed — show detailed diagnostics
-  $('ld').classList.add('h');
-  $('sp').className='spill off';$('sp').textContent='Offline';
-  $('cl').innerHTML=`<div class="empty">
-    <p>Unable to load data</p>
-    <span style="text-align:left">
-      <b>Diagnostics:</b><br>
-      ${errors.map(e=>'• '+e).join('<br>')}<br><br>
-      <b>Quick test:</b> Open this URL directly in your browser to check if the function works:<br>
-      <a href="/.netlify/functions/nashville-data" target="_blank">${location.origin}/.netlify/functions/nashville-data</a><br><br>
-      <b>Expected:</b> JSON starting with <code>{"objectIdFieldName"...</code><br>
-      <b>If you see HTML or 404:</b> The function didn't deploy. Check Netlify dashboard → Functions.<br>
-      <b>If you see an error JSON:</b> The function deployed but couldn't reach Nashville's server.<br><br>
-      <a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank">Nashville's Official Tracker →</a>
-    </span>
-  </div>`;
+  $("ld").classList.add("h");
+  $("sp").className = "spill off";
+  $("sp").textContent = "Offline";
+  $("cl").innerHTML = '<div class="empty"><p>Unable to load data</p><span>Nashville\'s data service may be temporarily unavailable.<br><a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank">View official tracker</a></span></div>';
 }
 
-function buildF(sts){
-  const b=$('fb');b.innerHTML='';
-  const a=mk('div','fp on');a.textContent='All';
-  a.onclick=()=>{aF=new Set(sts);sF();render()};b.appendChild(a);
-  b.appendChild(mk('div','fd'));
-  sts.forEach(s=>{const i=si(s),p=mk('div','fp on');p.textContent=i.l;p.dataset.s=s;
-    p.onclick=()=>{aF.has(s)?aF.delete(s):aF.add(s);sF();render()};b.appendChild(p);});
-}
-function sF(){
-  const ps=[...document.querySelectorAll('.fp[data-s]')];
-  document.querySelector('.fb .fp:first-child').classList.toggle('on',ps.every(p=>aF.has(p.dataset.s)));
-  ps.forEach(p=>p.classList.toggle('on',aF.has(p.dataset.s)));
-}
-function buildLg(sts){$('lgi').innerHTML=sts.map(s=>`<div class="lgi"><div class="lgs" style="background:${si(s).c}"></div>${si(s).l}</div>`).join('')}
-
-function flt(){
-  let l=all.filter(p=>aF.has(p.st));
-  if(qv){const ql=qv.toLowerCase();l=l.filter(p=>p.nm.toLowerCase().includes(ql)||p.cs.toLowerCase().includes(ql)||p.addr.toLowerCase().includes(ql)||p.tp.toLowerCase().includes(ql)||p.app.toLowerCase().includes(ql)||p.cd.toLowerCase().includes(ql))}
-  l.sort((a,b)=>dsc?b.ts-a.ts:a.ts-b.ts);return l;
-}
-
-function render(){const l=flt();$('cnt').textContent=l.length;rC(l);rM(l)}
-
-function rC(l){
-  const el=$('cl');
-  if(!l.length){el.innerHTML='<div class="empty"><p>No matching cases</p><span>Adjust your search or filters</span></div>';return}
-  const fr=document.createDocumentFragment();
-  l.forEach(p=>{
-    const s=si(p.st),c=mk('div','cd'+(sel===p.id?' on':''));
-    c.innerHTML=`<div class="cd-top"><div class="cd-dot" style="background:${s.c}"></div><div class="cd-t">${trn(p.nm,60)}</div></div>
-      <div class="cd-pills"><span class="pill pill-s" style="background:${s.c}">${s.l}</span>${p.tp?`<span class="pill pill-t">${p.tp}</span>`:''}</div>
-      <div class="cd-addr">${p.addr}</div>
-      <div class="cd-m"><span>${p.cs}</span>${p.ds!=='—'?`<span>${p.ds}</span>`:''}${p.cd?`<span>Dist ${p.cd}</span>`:''}</div>`;
-    c.onclick=()=>selP(p);fr.appendChild(c);
-  });
-  el.innerHTML='';el.appendChild(fr);
-}
-
-function rM(l){
-  Object.values(mks).forEach(m=>map.removeLayer(m));mks={};
-  l.filter(p=>p.lat&&p.lng).forEach(p=>{
-    const s=si(p.st),ic=L.divIcon({className:'mk',html:`<div class="mk-d" style="background:${s.c}"></div>`,iconSize:[12,12],iconAnchor:[6,6]});
-    const m=L.marker([p.lat,p.lng],{icon:ic}).addTo(map);
-    m.on('click',()=>selP(p));
-    m.bindTooltip(`<b>${p.cs}</b><br>${trn(p.nm,40)}`,{direction:'top',offset:[0,-8]});
-    mks[p.id]=m;
+function buildF(sts) {
+  var b = $("fb"); b.innerHTML = "";
+  var a = mk("div", "fp on"); a.textContent = "All";
+  a.onclick = function() { aF = new Set(sts); sF(); render(); };
+  b.appendChild(a);
+  b.appendChild(mk("div", "fd"));
+  sts.forEach(function(s) {
+    var info = si(s), p = mk("div", "fp on");
+    p.textContent = info.l; p.dataset.s = s;
+    p.onclick = function() { aF.has(s) ? aF.delete(s) : aF.add(s); sF(); render(); };
+    b.appendChild(p);
   });
 }
 
-function selP(p){
-  sel=p.id;const s=si(p.st);$('dn').textContent=p.nm;
-  let h=`<div class="dt-bg"><span class="pill pill-s" style="background:${s.c}">${s.l}</span>${p.tp?`<span class="pill pill-t">${p.tp}</span>`:''}${p.sub?`<span class="pill pill-t">${p.sub}</span>`:''}</div>`;
-  h+=rw('Case #',p.cs,1);h+=rw('Location',p.addr);
-  if(p.ds!=='—')h+=rw('MPC Date',p.ds);
-  if(p.per)h+=rw('Permit Type',p.per);
-  if(p.act)h+=rw('MPC Action',p.act);
-  if(p.vote)h+=rw('MPC Vote',p.vote);
-  if(p.compl)h+=rw('Completed',p.compl);
-  if(p.bill)h+=rw('Ordinance #',p.bill,1);
-  if(p.app)h+=rw('Applicant',p.app);
-  if(p.rep)h+=rw('Representative',p.rep);
-  if(p.cd)h+=rw('Council District',p.cd);
-  if(p.lead)h+=rw('Staff Lead',p.lead);
-  if(p.lat&&p.lng)h+=rw('Coordinates',`${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`,1);
-  if(p.cap)h+=`<div style="margin-top:14px;padding:12px;background:var(--g50);border-radius:var(--rs);font-size:12px;color:var(--g600);line-height:1.5">${p.cap}</div>`;
-  h+=`<a class="dt-lk" href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank" rel="noopener">View on Nashville's Official Tracker →</a>`;
-  $('db').innerHTML=h;$('dt').classList.add('open');
-  if(p.lat&&p.lng)map.flyTo([p.lat,p.lng],15,{duration:.4});
-  document.querySelectorAll('.cd').forEach(c=>c.classList.remove('on'));
-  const idx=flt().findIndex(x=>x.id===p.id);
-  const cds=document.querySelectorAll('.cd');
-  if(cds[idx]){cds[idx].classList.add('on');cds[idx].scrollIntoView({behavior:'smooth',block:'nearest'})}
+function sF() {
+  var ps = document.querySelectorAll(".fp[data-s]");
+  var allOn = true;
+  ps.forEach(function(p) { if (!aF.has(p.dataset.s)) allOn = false; p.classList.toggle("on", aF.has(p.dataset.s)); });
+  document.querySelector(".fb .fp:first-child").classList.toggle("on", allOn);
 }
 
-function $(id){return document.getElementById(id)}
-function mk(t,c){const e=document.createElement(t);e.className=c;return e}
-function trn(s,n){return(!s||s.length<=n)?s||'':s.slice(0,n-1)+'…'}
-function rw(l,v,m){return`<div class="dt-r"><span class="dt-l">${l}</span><span class="dt-v${m?' mo':''}">${v||'—'}</span></div>`}
+function buildLg(sts) {
+  $("lgi").innerHTML = sts.map(function(s) {
+    return '<div class="lgi"><div class="lgs" style="background:' + si(s).c + '"></div>' + si(s).l + '</div>';
+  }).join("");
+}
 
-$('dx').onclick=()=>{$('dt').classList.remove('open');sel=null;document.querySelectorAll('.cd').forEach(c=>c.classList.remove('on'))};
-$('q').oninput=e=>{qv=e.target.value.trim();$('qx').classList.toggle('v',!!qv);render()};
-$('qx').onclick=()=>{$('q').value='';qv='';$('qx').classList.remove('v');render()};
-$('srt').onclick=()=>{dsc=!dsc;$('srt').textContent=dsc?'Newest ↓':'Oldest ↑';render()};
-$('lgb').onclick=()=>{lgO=!lgO;$('lgp').classList.toggle('open',lgO)};
-map.on('click',()=>{if(lgO){lgO=false;$('lgp').classList.remove('open')}});
+function flt() {
+  var l = all.filter(function(p) { return aF.has(p.st); });
+  if (qv) {
+    var ql = qv.toLowerCase();
+    l = l.filter(function(p) {
+      return p.nm.toLowerCase().indexOf(ql) >= 0 ||
+        p.cs.toLowerCase().indexOf(ql) >= 0 ||
+        p.addr.toLowerCase().indexOf(ql) >= 0 ||
+        p.tp.toLowerCase().indexOf(ql) >= 0 ||
+        p.app.toLowerCase().indexOf(ql) >= 0 ||
+        p.cd.toLowerCase().indexOf(ql) >= 0;
+    });
+  }
+  l.sort(function(a, b) { return dsc ? b.ts - a.ts : a.ts - b.ts; });
+  return l;
+}
+
+function render() { var l = flt(); $("cnt").textContent = l.length; rC(l); rM(l); }
+
+function rC(l) {
+  var el = $("cl");
+  if (!l.length) { el.innerHTML = '<div class="empty"><p>No matching cases</p><span>Adjust your search or filters</span></div>'; return; }
+  var fr = document.createDocumentFragment();
+  l.forEach(function(p) {
+    var s = si(p.st), c = mk("div", "cd" + (sel === p.id ? " on" : ""));
+    c.innerHTML =
+      '<div class="cd-top"><div class="cd-dot" style="background:' + s.c + '"></div><div class="cd-t">' + trn(p.nm, 60) + '</div></div>' +
+      '<div class="cd-pills"><span class="pill pill-s" style="background:' + s.c + '">' + s.l + '</span>' + (p.tp ? '<span class="pill pill-t">' + p.tp + '</span>' : '') + '</div>' +
+      '<div class="cd-addr">' + p.addr + '</div>' +
+      '<div class="cd-m"><span>' + p.cs + '</span>' + (p.ds ? '<span>' + p.ds + '</span>' : '') + (p.cd ? '<span>Dist ' + p.cd + '</span>' : '') + '</div>';
+    c.onclick = function() { selP(p); };
+    fr.appendChild(c);
+  });
+  el.innerHTML = ""; el.appendChild(fr);
+}
+
+function rM(l) {
+  Object.values(mks).forEach(function(m) { map.removeLayer(m); }); mks = {};
+  l.filter(function(p) { return p.lat && p.lng; }).forEach(function(p) {
+    var s = si(p.st);
+    var ic = L.divIcon({className: "mk", html: '<div class="mk-d" style="background:' + s.c + '"></div>', iconSize: [12, 12], iconAnchor: [6, 6]});
+    var m = L.marker([p.lat, p.lng], {icon: ic}).addTo(map);
+    m.on("click", function() { selP(p); });
+    m.bindTooltip("<b>" + p.cs + "</b><br>" + trn(p.nm, 40), {direction: "top", offset: [0, -8]});
+    mks[p.id] = m;
+  });
+}
+
+function selP(p) {
+  sel = p.id; var s = si(p.st);
+  $("dn").textContent = p.nm;
+  var h = '<div class="dt-bg"><span class="pill pill-s" style="background:' + s.c + '">' + s.l + '</span>' +
+    (p.tp ? '<span class="pill pill-t">' + p.tp + '</span>' : '') +
+    (p.sub ? '<span class="pill pill-t">' + p.sub + '</span>' : '') + '</div>';
+  h += rw("Case #", p.cs, 1);
+  h += rw("Location", p.addr);
+  if (p.ds) h += rw("MPC Date", p.ds);
+  if (p.per) h += rw("Permit Type", p.per);
+  if (p.act) h += rw("MPC Action", p.act);
+  if (p.vote) h += rw("MPC Vote", p.vote);
+  if (p.compl) h += rw("Completed", p.compl);
+  if (p.bill) h += rw("Ordinance #", p.bill, 1);
+  if (p.app) h += rw("Applicant", p.app);
+  if (p.rep) h += rw("Representative", p.rep);
+  if (p.cd) h += rw("Council District", p.cd);
+  if (p.lead) h += rw("Staff Lead", p.lead);
+  if (p.cap) h += '<div style="margin-top:14px;padding:12px;background:var(--g50);border-radius:var(--rs);font-size:12px;color:var(--g600);line-height:1.5">' + p.cap + '</div>';
+  h += '<a class="dt-lk" href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank" rel="noopener">View on Official Tracker</a>';
+  $("db").innerHTML = h;
+  $("dt").classList.add("open");
+  if (p.lat && p.lng) map.flyTo([p.lat, p.lng], 15, {duration: 0.4});
+  document.querySelectorAll(".cd").forEach(function(c) { c.classList.remove("on"); });
+  var idx = flt().findIndex(function(x) { return x.id === p.id; });
+  var cds = document.querySelectorAll(".cd");
+  if (cds[idx]) { cds[idx].classList.add("on"); cds[idx].scrollIntoView({behavior: "smooth", block: "nearest"}); }
+}
+
+function $(id) { return document.getElementById(id); }
+function mk(t, c) { var e = document.createElement(t); e.className = c; return e; }
+function trn(s, n) { return (!s || s.length <= n) ? s || "" : s.slice(0, n - 1) + "..."; }
+function rw(l, v, m) { return '<div class="dt-r"><span class="dt-l">' + l + '</span><span class="dt-v' + (m ? ' mo' : '') + '">' + (v || "") + '</span></div>'; }
+
+$("dx").onclick = function() { $("dt").classList.remove("open"); sel = null; document.querySelectorAll(".cd").forEach(function(c) { c.classList.remove("on"); }); };
+$("q").oninput = function(e) { qv = e.target.value.trim(); $("qx").classList.toggle("v", !!qv); render(); };
+$("qx").onclick = function() { $("q").value = ""; qv = ""; $("qx").classList.remove("v"); render(); };
+$("srt").onclick = function() { dsc = !dsc; $("srt").textContent = dsc ? "Newest" : "Oldest"; render(); };
+$("lgb").onclick = function() { lgO = !lgO; $("lgp").classList.toggle("open", lgO); };
+map.on("click", function() { if (lgO) { lgO = false; $("lgp").classList.remove("open"); } });
+
 load();
 </script>
 </body>
