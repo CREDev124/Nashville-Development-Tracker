@@ -226,7 +226,8 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 </div>
 <script>
 /* ---- CONFIG ---- */
-var MPC_URL="https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services/Development_Tracker_Cases_view/FeatureServer/1/query";
+var MPC_ONPREM="https://maps.nashville.gov/arcgis/rest/services/Planning/DevTracker_Cases/FeatureServer/1/query";
+var MPC_ONLINE="https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services/Development_Tracker_Cases_view/FeatureServer/1/query";
 var BP_URL="https://maps.nashville.gov/arcgis/rest/services/Codes/BuildingPermits/MapServer/0/query";
 var MPC_FN="/.netlify/functions/nashville-data?source=mpc", BP_FN="/.netlify/functions/nashville-data?source=bp", PAGE=2000;
 var PARCEL_TILES="https://maps.nashville.gov/arcgis/rest/services/Cadastral/Parcels/MapServer/tile/{z}/{y}/{x}";
@@ -314,16 +315,39 @@ function parseBP(json){
 }
 
 /* ---- PAGINATED FETCH ---- */
-async function fetchPaginated(url,onProg){
-  var feats=[],off=0,more=true,fields=null,gT=null,sR=null;
-  while(more){
-    var p=new URLSearchParams({where:"1=1",outFields:"*",outSR:"4326",f:"json",resultRecordCount:String(PAGE),resultOffset:String(off),returnGeometry:"true",orderByFields:"OBJECTID ASC"});
+async function fetchPaginated(url,onProg,oidField){
+  var oid=oidField||"OBJECTID";
+  var feats=[],off=0,fields=null,gT=null,sR=null;
+  // Try offset-based pagination first
+  var useOffset=true;
+  while(true){
+    var p=new URLSearchParams({where:"1=1",outFields:"*",outSR:"4326",f:"json",resultRecordCount:String(PAGE),returnGeometry:"true"});
+    if(useOffset){p.set("resultOffset",String(off));p.set("orderByFields",oid+" ASC");}
     var r=await fetch(url+"?"+p.toString());var j=await r.json();
-    if(j.error)throw new Error(j.error.message||"Query error");
+    if(j.error){
+      if(feats.length===0&&useOffset){useOffset=false;continue;}// retry without offset
+      throw new Error(j.error.message||"Query error");
+    }
     if(!fields&&j.fields)fields=j.fields;if(!gT&&j.geometryType)gT=j.geometryType;if(!sR&&j.spatialReference)sR=j.spatialReference;
     if(j.features&&j.features.length>0){feats=feats.concat(j.features);off+=j.features.length;if(onProg)onProg(feats.length);}
-    if(!j.features||j.features.length<PAGE||!j.exceededTransferLimit)more=false;
-    if(off>=100000)more=false;
+    else break;
+    if(j.features.length<PAGE)break;
+    if(!useOffset)break;// can't paginate without offset, take what we got
+    if(off>=100000)break;
+  }
+  // If offset didn't work, try OID-based pagination
+  if(!useOffset&&feats.length>0){
+    var lastOid=0;
+    feats.forEach(function(f){var v=f.attributes[oid]||0;if(v>lastOid)lastOid=v;});
+    while(true){
+      var p2=new URLSearchParams({where:oid+">"+lastOid,outFields:"*",outSR:"4326",f:"json",resultRecordCount:String(PAGE),returnGeometry:"true"});
+      var r2=await fetch(url+"?"+p2.toString());var j2=await r2.json();
+      if(j2.error||!j2.features||j2.features.length===0)break;
+      feats=feats.concat(j2.features);if(onProg)onProg(feats.length);
+      var mx=0;j2.features.forEach(function(f){var v=f.attributes[oid]||0;if(v>mx)mx=v;});
+      if(mx<=lastOid)break;lastOid=mx;
+      if(j2.features.length<PAGE)break;if(feats.length>=100000)break;
+    }
   }
   return{features:feats,fields:fields};
 }
@@ -465,18 +489,20 @@ map.on("click",function(){if(lgO){lgO=false;$("lgp").classList.remove("open");}}
 /* ---- LOAD ---- */
 async function loadMPC(){
   $("lm").textContent="Loading MPC cases...";$("ls").textContent="Fetching all pages...";
-  // Try Netlify function first (handles pagination server-side)
-  try{$("ls").textContent="Loading MPC via function...";var r=await fetch(MPC_FN);var j2=await r.json();if(j2.features&&j2.features.length>0){mpcData=parseMPC(j2);$("ds-mpc-cnt").textContent=mpcData.length;return true;}}catch(e2){}
-  // Fallback: try direct ArcGIS Online (CORS-enabled, paginated)
-  try{var j=await fetchPaginated(MPC_URL,function(n){$("ls").textContent=n+" MPC records...";$("pf").style.width=Math.min(n/8000*50,50)+"%";});mpcData=parseMPC(j);if(mpcData.length>0){$("ds-mpc-cnt").textContent=mpcData.length;return true;}}catch(e){}
+  // 1. Try on-premise server directly (full dataset, ESRI_OID)
+  try{$("ls").textContent="Loading MPC (on-premise)...";var j=await fetchPaginated(MPC_ONPREM,function(n){$("ls").textContent=n+" MPC records...";$("pf").style.width=Math.min(n/8000*50,50)+"%";},"ESRI_OID");mpcData=parseMPC(j);if(mpcData.length>0){$("ds-mpc-cnt").textContent=mpcData.length;return true;}}catch(e){}
+  // 2. Try Netlify function (server-side proxy)
+  try{$("ls").textContent="Loading MPC via proxy...";var r=await fetch(MPC_FN);var j2=await r.json();if(j2.features&&j2.features.length>0){mpcData=parseMPC(j2);$("ds-mpc-cnt").textContent=mpcData.length;return true;}}catch(e2){}
+  // 3. Fallback: ArcGIS Online view (fewer records but always works)
+  try{$("ls").textContent="Loading MPC (fallback)...";var j3=await fetchPaginated(MPC_ONLINE,function(n){$("ls").textContent=n+" MPC records...";$("pf").style.width=Math.min(n/8000*50,50)+"%";},"OBJECTID");mpcData=parseMPC(j3);if(mpcData.length>0){$("ds-mpc-cnt").textContent=mpcData.length;return true;}}catch(e3){}
   return false;
 }
 async function loadBP(){
   $("lm").textContent="Loading building permits...";$("ls").textContent="Fetching permit data...";
-  // On-premise server likely blocks CORS, so try Netlify function first
-  try{$("ls").textContent="Loading via proxy...";var r=await fetch(BP_FN);var j2=await r.json();if(j2.features&&j2.features.length>0){bpData=parseBP(j2);$("ds-bp-cnt").textContent=bpData.length;return true;}}catch(e2){}
-  // Fallback: try direct (may work if CORS is enabled)
-  try{var j=await fetchPaginated(BP_URL,function(n){$("ls").textContent=n+" permit records...";$("pf").style.width=50+Math.min(n/80000*50,50)+"%";});bpData=parseBP(j);if(bpData.length>0){$("ds-bp-cnt").textContent=bpData.length;return true;}}catch(e){}
+  // 1. Try on-premise server directly from browser
+  try{$("ls").textContent="Loading permits (direct)...";var j=await fetchPaginated(BP_URL,function(n){$("ls").textContent=n+" permit records...";$("pf").style.width=50+Math.min(n/80000*50,50)+"%";},"OID");bpData=parseBP(j);if(bpData.length>0){$("ds-bp-cnt").textContent=bpData.length;return true;}}catch(e){}
+  // 2. Try Netlify function (server-side proxy)
+  try{$("ls").textContent="Loading permits via proxy...";var r=await fetch(BP_FN);var j2=await r.json();if(j2.features&&j2.features.length>0){bpData=parseBP(j2);$("ds-bp-cnt").textContent=bpData.length;return true;}}catch(e2){}
   return false;
 }
 async function load(){
