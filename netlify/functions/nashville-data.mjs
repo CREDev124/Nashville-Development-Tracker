@@ -11,9 +11,9 @@ var SOURCES = {
     page: 2000
   },
   bp: {
-    url: "https://maps.nashville.gov/arcgis/rest/services/Codes/BuildingPermits/MapServer/0/query",
-    oid: "OID",
-    page: 1000
+    url: "https://services2.arcgis.com/HdTo6HJqh92wn4D8/ArcGIS/rest/services/Building_Permits_Issued_2/FeatureServer/0/query",
+    oid: "ObjectId",
+    page: 2000
   }
 };
 
