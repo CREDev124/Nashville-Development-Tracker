@@ -1,17 +1,13 @@
-// Paginated fetcher for Nashville Building Permit Applications
-// From Nashville Open Data (Codes Department) - different org than MPC cases
-// Only fetches last 5 years of data to keep reasonable size
+// Paginated fetcher for Nashville Building Permits
+// Nashville on-premise: maps.nashville.gov/arcgis/rest/services/Codes/BuildingPermits/MapServer/0
+// Actual fields: CASE_TYPE_DESC, SUB_TYPE_DESC, CASE_NUMBER, STATUS_CODE, DATE_ACCEPTED,
+//   CONSTVAL, DATE_ISSUED, LOCATION, APN, OID, SCOPE, BLDG_SQ_FT, FINALDATE, FINALCODE, UNITS
 
-var BASE = "https://services2.arcgis.com/CyVvlIiUfRBmMQuu/arcgis/rest/services/Building_Permits_Applications_view/FeatureServer/0/query";
-var PAGE = 2000;
+var BASE = "https://maps.nashville.gov/arcgis/rest/services/Codes/BuildingPermits/MapServer/0/query";
+var PAGE = 1000;
 
 export default async (request, context) => {
   try {
-    // Calculate 5 years ago in epoch ms
-    var fiveYearsAgo = new Date();
-    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-    var epochMs = fiveYearsAgo.getTime();
-
     var allFeatures = [];
     var offset = 0;
     var hasMore = true;
@@ -21,66 +17,47 @@ export default async (request, context) => {
 
     while (hasMore) {
       var params = new URLSearchParams({
-        where: "date_entered >= " + epochMs,
+        where: "1=1",
         outFields: "*",
         outSR: "4326",
         f: "json",
         resultRecordCount: String(PAGE),
         resultOffset: String(offset),
         returnGeometry: "true",
-        orderByFields: "OBJECTID ASC"
+        orderByFields: "OID ASC"
       });
 
-      var res = await fetch(BASE + "?" + params.toString());
+      var url = BASE + "?" + params.toString();
+      var res = await fetch(url);
       var text = await res.text();
       var json;
+
       try {
         json = JSON.parse(text);
       } catch (e) {
-        // If date_entered field doesn't exist, try without date filter
-        var params2 = new URLSearchParams({
-          where: "1=1",
-          outFields: "*",
-          outSR: "4326",
-          f: "json",
-          resultRecordCount: String(PAGE),
-          resultOffset: String(offset),
-          returnGeometry: "true",
-          orderByFields: "OBJECTID ASC"
-        });
-        var res2 = await fetch(BASE + "?" + params2.toString());
-        text = await res2.text();
-        json = JSON.parse(text);
+        break;
       }
 
       if (json.error) {
-        // If the date field name is wrong, retry with 1=1
-        if (json.error.message && json.error.message.indexOf("date_entered") >= 0) {
-          var params3 = new URLSearchParams({
+        // Some older MapServers don't support resultOffset; try without pagination
+        if (offset === 0) {
+          var p2 = new URLSearchParams({
             where: "1=1",
             outFields: "*",
             outSR: "4326",
             f: "json",
-            resultRecordCount: String(PAGE),
-            resultOffset: String(offset),
-            returnGeometry: "true",
-            orderByFields: "OBJECTID ASC"
+            resultRecordCount: "2000",
+            returnGeometry: "true"
           });
-          var res3 = await fetch(BASE + "?" + params3.toString());
-          json = await res3.json();
-
-          if (json.error) {
-            return new Response(JSON.stringify({ error: json.error }), {
-              status: 500,
-              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-            });
-          }
-        } else {
-          return new Response(JSON.stringify({ error: json.error }), {
-            status: 500,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-          });
+          var r2 = await fetch(BASE + "?" + p2.toString());
+          json = await r2.json();
+          if (json.features) allFeatures = json.features;
+          if (json.fields) fields = json.fields;
+          if (json.geometryType) geomType = json.geometryType;
+          if (json.spatialReference) spatialRef = json.spatialReference;
         }
+        hasMore = false;
+        continue;
       }
 
       if (!fields && json.fields) fields = json.fields;
@@ -96,7 +73,6 @@ export default async (request, context) => {
         hasMore = false;
       }
 
-      // Safety cap
       if (offset >= 100000) hasMore = false;
     }
 
