@@ -19,7 +19,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50);color:var(--g800);height:100vh;overflow:hidden}
 .app{display:flex;height:100vh}
-.sb{width:400px;min-width:400px;background:var(--w);border-right:1px solid var(--g200);display:flex;flex-direction:column;z-index:600}
+.sb{width:420px;min-width:420px;background:var(--w);border-right:1px solid var(--g200);display:flex;flex-direction:column;z-index:600}
 .brand{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--g200);flex-shrink:0}
 .brand-l{display:flex;align-items:center;gap:10px}
 .brand-m{width:30px;height:30px;border-radius:8px;background:var(--bl);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px}
@@ -30,6 +30,8 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .spill.live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--gn);animation:bk 2s infinite}
 .spill.off{color:var(--rd);background:#fef2f2}
 @keyframes bk{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Search */
 .sw{padding:10px 14px;border-bottom:1px solid var(--g200);flex-shrink:0}
 .sb2{display:flex;align-items:center;background:var(--g50);border:1.5px solid var(--g200);border-radius:var(--rs);padding:0 12px;transition:border-color .2s,box-shadow .2s}
 .sb2:focus-within{border-color:var(--bl);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
@@ -38,17 +40,57 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .sb2 input::placeholder{color:var(--g400)}
 .sx{width:20px;height:20px;border-radius:50%;border:none;background:var(--g300);color:#fff;font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0}
 .sx.v{display:flex}
+
+/* Filter panel */
+.fp-wrap{border-bottom:1px solid var(--g200);flex-shrink:0}
+.fp-toggle{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;cursor:pointer;user-select:none}
+.fp-toggle:hover{background:var(--g50)}
+.fp-label{font-size:11.5px;font-weight:600;color:var(--g600);text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:6px}
+.fp-count{font-size:10px;font-weight:500;color:var(--bl);background:var(--bl-l);padding:1px 7px;border-radius:10px}
+.fp-arrow{font-size:11px;color:var(--g400);transition:transform .2s}
+.fp-arrow.open{transform:rotate(180deg)}
+.fp-body{display:none;padding:6px 14px 10px;max-height:200px;overflow-y:auto}
+.fp-body.open{display:block}
+.fp-body::-webkit-scrollbar{width:4px}
+.fp-body::-webkit-scrollbar-thumb{background:var(--g200);border-radius:4px}
+
+/* Filter row styles */
+.frow{display:flex;flex-direction:column;gap:5px}
+.frow label{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--g700);cursor:pointer;padding:3px 4px;border-radius:5px;transition:background .1s}
+.frow label:hover{background:var(--g50)}
+.frow input[type="checkbox"]{width:14px;height:14px;accent-color:var(--bl);cursor:pointer;flex-shrink:0}
+.frow .flbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .fcnt{font-size:10px;color:var(--g400);font-family:'IBM Plex Mono',monospace;flex-shrink:0}
+
+/* Applicant search within filter */
+.f-search{width:100%;border:1px solid var(--g200);border-radius:5px;padding:5px 8px;font-family:inherit;font-size:11.5px;color:var(--g800);outline:none;margin-bottom:6px}
+.f-search:focus{border-color:var(--bl)}
+
+/* Timeline filter */
+.timeline-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.timeline-row select,.timeline-row input[type="date"]{border:1px solid var(--g200);border-radius:5px;padding:5px 8px;font-family:inherit;font-size:11.5px;color:var(--g800);outline:none;background:var(--w)}
+.timeline-row select:focus,.timeline-row input[type="date"]:focus{border-color:var(--bl)}
+.timeline-row select{flex:1;min-width:0}
+.timeline-row input[type="date"]{width:130px}
+.tl-label{font-size:11px;color:var(--g500);white-space:nowrap}
+.tl-reset{font-size:10.5px;color:var(--bl);background:none;border:none;cursor:pointer;font-family:inherit;padding:2px 6px;border-radius:4px}
+.tl-reset:hover{background:var(--bl-l)}
+
+/* Status pills row */
 .fb{padding:8px 14px;border-bottom:1px solid var(--g200);flex-shrink:0;display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none}
 .fb::-webkit-scrollbar{display:none}
-.fp{padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;border:1.5px solid var(--g200);background:var(--w);color:var(--g600);transition:all .15s;white-space:nowrap;user-select:none}
-.fp:hover{border-color:var(--g400)}
-.fp.on{background:var(--bl);color:#fff;border-color:var(--bl)}
+.fp2{padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;border:1.5px solid var(--g200);background:var(--w);color:var(--g600);transition:all .15s;white-space:nowrap;user-select:none}
+.fp2:hover{border-color:var(--g400)}
+.fp2.on{background:var(--bl);color:#fff;border-color:var(--bl)}
 .fd{width:1px;height:18px;background:var(--g200);flex-shrink:0}
+
+/* Results bar */
 .rb{padding:7px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--g100);flex-shrink:0}
 .rc{font-size:11.5px;color:var(--g500)}.rc strong{color:var(--g800);font-weight:600}
-.rc .st2{font-size:10px;color:var(--g400);margin-left:6px}
 .btn2{font-size:10.5px;color:var(--g500);background:none;border:1px solid var(--g200);padding:3px 10px;border-radius:5px;cursor:pointer;font-family:inherit;transition:all .15s}
 .btn2:hover{border-color:var(--g400);color:var(--g700)}
+
+/* Card list */
 .cl{flex:1;overflow-y:auto;padding:6px 10px}
 .cl::-webkit-scrollbar{width:5px}
 .cl::-webkit-scrollbar-track{background:transparent}
@@ -69,16 +111,19 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .empty span{font-size:12px;color:var(--g400);line-height:1.6;display:block}
 .sf{padding:7px 14px;font-size:9.5px;color:var(--g400);border-top:1px solid var(--g100);flex-shrink:0;text-align:center}
 .sf a{color:var(--bl);text-decoration:none}
+
+/* Map area */
 .ma{flex:1;position:relative}
 #map{width:100%;height:100%;background:#f2f3f0}
 .leaflet-container{background:#f2f3f0!important}
 .leaflet-control-zoom{border:none!important;box-shadow:var(--sh)!important;border-radius:var(--rs)!important;overflow:hidden}
 .leaflet-control-zoom a{width:34px!important;height:34px!important;line-height:34px!important;font-size:16px!important;color:var(--g700)!important;border-bottom:1px solid var(--g200)!important}
-.leaflet-control-zoom a:hover{background:var(--g50)!important}
 .mk{position:relative;display:flex;align-items:center;justify-content:center}
 .mk-d{width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .15s}
 .mk:hover .mk-d{transform:scale(1.35)}
 .leaflet-tooltip{font-family:'Instrument Sans',sans-serif!important;font-size:12px!important;padding:6px 10px!important;border-radius:6px!important;box-shadow:var(--sh)!important;border:1px solid var(--g200)!important}
+
+/* Detail panel */
 .dt{position:absolute;top:0;right:0;width:390px;height:100%;background:var(--w);border-left:1px solid var(--g200);z-index:900;display:none;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,.08);overflow:hidden}
 .dt.open{display:flex;animation:sI .25s ease}
 @keyframes sI{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
@@ -93,6 +138,8 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .dt-v.mo{font-family:'IBM Plex Mono',monospace;font-size:11.5px}
 .dt-lk{display:block;text-align:center;margin-top:18px;font-size:12px;color:var(--bl);text-decoration:none;padding:10px;background:var(--bl-l);border-radius:var(--rs);font-weight:500;transition:background .15s}
 .dt-lk:hover{background:var(--bl-s)}
+
+/* Legend */
 .lgb{position:absolute;bottom:18px;left:14px;z-index:800;background:var(--w);border:1px solid var(--g200);border-radius:var(--rs);padding:7px 12px;cursor:pointer;box-shadow:var(--sh);font-family:inherit;font-size:11.5px;font-weight:500;color:var(--g600);display:flex;align-items:center;gap:6px;transition:all .15s;user-select:none}
 .lgb:hover{background:var(--g50)}
 .lgd{display:flex;gap:3px}.lgd span{width:7px;height:7px;border-radius:50%}
@@ -102,23 +149,84 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .lgh{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--g400);margin-bottom:5px}
 .lgi{display:flex;align-items:center;gap:7px;padding:2.5px 0;font-size:11.5px;color:var(--g600)}
 .lgs{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* Loading overlay */
 .ld{position:absolute;inset:0;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2000;transition:opacity .3s}
 .ld.h{opacity:0;pointer-events:none}
 .ldr{width:30px;height:30px;border:3px solid var(--g200);border-top-color:var(--bl);border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .ld p{margin-top:10px;font-size:13px;color:var(--g500)}
 .ld .sub{font-size:11px;color:var(--g400);margin-top:4px}
-@media(max-width:860px){.sb{width:100%;min-width:100%;max-height:45vh;border-right:none;border-bottom:1px solid var(--g200)}.app{flex-direction:column}.dt{width:100%}}
+@media(max-width:860px){.sb{width:100%;min-width:100%;max-height:50vh;border-right:none;border-bottom:1px solid var(--g200)}.app{flex-direction:column}.dt{width:100%}}
 </style>
 </head>
 <body>
 <div class="app">
 <div class="sb">
   <div class="brand"><div class="brand-l"><div class="brand-m">N</div><h1>Dev Tracker <span>Nashville</span></h1></div><div class="spill" id="sp">Loading</div></div>
+
+  <!-- Search -->
   <div class="sw"><div class="sb2"><svg class="si" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="q" placeholder="Search case #, project, address..." autocomplete="off"><button class="sx" id="qx">&times;</button></div></div>
-  <div class="fb" id="fb"></div>
+
+  <!-- Filter: Case Type -->
+  <div class="fp-wrap" id="fw-type">
+    <div class="fp-toggle" onclick="togglePanel('type')">
+      <span class="fp-label">Case Type <span class="fp-count" id="fc-type"></span></span>
+      <span class="fp-arrow" id="fa-type">&#9660;</span>
+    </div>
+    <div class="fp-body" id="fb-type"><div class="frow" id="fr-type"></div></div>
+  </div>
+
+  <!-- Filter: Applicant -->
+  <div class="fp-wrap" id="fw-app">
+    <div class="fp-toggle" onclick="togglePanel('app')">
+      <span class="fp-label">Applicant <span class="fp-count" id="fc-app"></span></span>
+      <span class="fp-arrow" id="fa-app">&#9660;</span>
+    </div>
+    <div class="fp-body" id="fb-app">
+      <input type="text" class="f-search" id="app-search" placeholder="Search applicants..." oninput="renderAppFilter()">
+      <div class="frow" id="fr-app"></div>
+    </div>
+  </div>
+
+  <!-- Filter: Timeline -->
+  <div class="fp-wrap" id="fw-time">
+    <div class="fp-toggle" onclick="togglePanel('time')">
+      <span class="fp-label">Timeline <span class="fp-count" id="fc-time"></span></span>
+      <span class="fp-arrow" id="fa-time">&#9660;</span>
+    </div>
+    <div class="fp-body" id="fb-time">
+      <div class="timeline-row">
+        <select id="tl-preset" onchange="applyTimePreset()">
+          <option value="">All time</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="180">Last 6 months</option>
+          <option value="365">Last year</option>
+          <option value="custom">Custom range</option>
+        </select>
+        <button class="tl-reset" onclick="resetTimeline()">Reset</button>
+      </div>
+      <div id="tl-custom" style="display:none;margin-top:8px">
+        <div class="timeline-row">
+          <span class="tl-label">From</span>
+          <input type="date" id="tl-from" onchange="applyCustomDates()">
+          <span class="tl-label">To</span>
+          <input type="date" id="tl-to" onchange="applyCustomDates()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status pills -->
+  <div class="fb" id="fb-status"></div>
+
+  <!-- Results bar -->
   <div class="rb"><span class="rc"><strong id="cnt">0</strong> cases</span><button class="btn2" id="srt">Newest</button></div>
+
+  <!-- Card list -->
   <div class="cl" id="cl"></div>
+
   <div class="sf">Source: <a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank" rel="noopener">Metro Nashville Planning Dept</a></div>
 </div>
 <div class="ma">
@@ -134,15 +242,25 @@ var ARCGIS_ONLINE = "https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/s
 var FALLBACK_FN = "/.netlify/functions/nashville-data";
 
 var ST = {
-  NEW:          {l:"New",         c:"#16a34a"},
-  PENDING:      {l:"Pending",     c:"#d97706"},
-  CNCLACTIVE:   {l:"Active",      c:"#7c3aed"},
-  CNCLCOMPLETE: {l:"Complete",    c:"#64748b"},
-  MPCCOMPLETE:  {l:"MPC Done",    c:"#94a3b8"}
+  New:      {l:"New",      c:"#16a34a"},
+  Pending:  {l:"Pending",  c:"#d97706"},
+  Active:   {l:"Active",   c:"#7c3aed"},
+  Complete: {l:"Complete", c:"#64748b"}
 };
 function si(s) { return ST[s] || {l: s || "Unknown", c: "#64748b"}; }
 
-var all = [], aF = new Set(), qv = "", dsc = true, sel = null, mks = {}, lgO = false;
+var all = [], qv = "", dsc = true, sel = null, mks = {}, lgO = false;
+
+// Filter state
+var activeStatuses = new Set();
+var activeTypes = new Set();
+var activeApps = new Set();
+var tlFrom = null, tlTo = null;
+
+// Data catalogs (populated after load)
+var allStatuses = [];
+var allTypes = [];
+var allApps = [];
 
 var map = L.map("map", {zoomControl: false}).setView([36.162, -86.775], 12);
 L.control.zoom({position: "topright"}).addTo(map);
@@ -153,10 +271,12 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
 function parseFeatures(json) {
   if (!json.features || json.features.length === 0) return [];
   return json.features.filter(function(f) {
-    return f.geometry && ((f.geometry.x != null && f.geometry.y != null) || (f.geometry.rings));
+    return f.geometry && (f.geometry.rings || (f.geometry.x != null));
   }).map(function(f, i) {
     var a = f.attributes || {};
-    var dt = a.MPC_DATE ? new Date(a.MPC_DATE) : null;
+    var mpcDt = a.MPC_DATE ? new Date(a.MPC_DATE) : null;
+    var acceptDt = a.DATE_ACCEPTED ? new Date(a.DATE_ACCEPTED) : null;
+    var datePrimary = acceptDt || mpcDt;
     var lat, lng;
     if (f.geometry.y != null && f.geometry.x != null) {
       lat = f.geometry.y; lng = f.geometry.x;
@@ -167,106 +287,204 @@ function parseFeatures(json) {
       lng = sx / ring.length; lat = sy / ring.length;
     }
     return {
-      id: a.OBJECTID || a.CA_OBJECT_ID || a.ESRI_OID || i,
+      id: a.OBJECTID || i,
       cs: a.MPCNUM || "",
       nm: a.PROJECT_DESC || a.MPCNUM || "Unnamed",
-      tp: a.CASE_TYPE_DESC || a.CASE_TYPE || "",
+      tp: a.CASE_TYPE_DESC || "",
       sub: a.SUB_TYPE_DESC || "",
       per: a.PERTYPE || "",
-      st: a.PERSTATUS || a.PSTAT || "PENDING",
+      st: a.PSTAT || "Active",
       addr: a.LOCATION_DESC || "",
       bill: a.BILLNUM || "",
-      dt: dt,
-      ds: dt ? dt.toISOString().slice(0, 10) : "",
-      ts: dt ? dt.getTime() : 0,
+      mpcDt: mpcDt,
+      acceptDt: acceptDt,
+      datePrimary: datePrimary,
+      ds: datePrimary ? datePrimary.toISOString().slice(0, 10) : "",
+      ts: datePrimary ? datePrimary.getTime() : 0,
       lat: lat, lng: lng,
-      act: a.MPC_ACTION_DESC || a.MPC_ACTION || "",
+      act: a.MPC_ACTION_DESC || "",
       vote: a.MPC_VOTE || "",
       app: a.APP_NAME || "",
       rep: a.APP_REP || "",
       cd: a.CD || "",
       lead: a.PER_LEAD || "",
       cap: a.CAPTION || "",
-      compl: a.MPC_COMPLETE ? new Date(a.MPC_COMPLETE).toISOString().slice(0, 10) : ""
+      ez: a.ExistingZoning || "",
+      nz: a.NewZoning || "",
+      acres: a.Acreage || "",
+      policy: a.Policy || "",
+      cplan: a.CommunityPlan || "",
+      parcels: a.Parcels || "",
+      hearing: a.HEARING_DATE || ""
     };
   });
 }
 
-async function load() {
-  var sources = [
-    {
-      label: "ArcGIS Online",
-      url: ARCGIS_ONLINE + "?where=1%3D1&outFields=*&outSR=4326&f=json&resultRecordCount=4000&returnGeometry=true"
-    },
-    {
-      label: "Netlify Function",
-      url: FALLBACK_FN
-    }
-  ];
+function buildCatalogs() {
+  var stMap = {}, tpMap = {}, apMap = {};
+  all.forEach(function(p) {
+    stMap[p.st] = (stMap[p.st] || 0) + 1;
+    if (p.tp) tpMap[p.tp] = (tpMap[p.tp] || 0) + 1;
+    if (p.app) apMap[p.app] = (apMap[p.app] || 0) + 1;
+  });
 
-  for (var i = 0; i < sources.length; i++) {
-    var src = sources[i];
-    try {
-      $("lm").textContent = "Trying " + src.label + "...";
-      var res = await fetch(src.url);
-      var text = await res.text();
-      var json = JSON.parse(text);
-      if (json.error) continue;
-      var features = parseFeatures(json);
-      if (features.length === 0) continue;
+  allStatuses = Object.keys(stMap).sort();
+  allTypes = Object.keys(tpMap).sort();
+  allApps = Object.keys(apMap).sort(function(a, b) { return apMap[b] - apMap[a]; });
 
-      all = features;
-      $("ld").classList.add("h");
-      $("sp").className = "spill live";
-      $("sp").textContent = "Live";
-      var sts = [];
-      var stSet = {};
-      all.forEach(function(p) { if (!stSet[p.st]) { stSet[p.st] = true; sts.push(p.st); } });
-      aF = new Set(sts);
-      buildF(sts);
-      buildLg(sts);
-      render();
-      return;
-    } catch (e) {
-      continue;
-    }
-  }
+  activeStatuses = new Set(allStatuses);
+  activeTypes = new Set(allTypes);
+  activeApps = new Set(allApps);
 
-  $("ld").classList.add("h");
-  $("sp").className = "spill off";
-  $("sp").textContent = "Offline";
-  $("cl").innerHTML = '<div class="empty"><p>Unable to load data</p><span>Nashville\'s data service may be temporarily unavailable.<br><a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank">View official tracker</a></span></div>';
+  buildStatusPills();
+  buildTypeFilter(tpMap);
+  renderAppFilter();
+  updateFilterCounts();
 }
 
-function buildF(sts) {
-  var b = $("fb"); b.innerHTML = "";
-  var a = mk("div", "fp on"); a.textContent = "All";
-  a.onclick = function() { aF = new Set(sts); sF(); render(); };
+// Status pills
+function buildStatusPills() {
+  var b = $("fb-status"); b.innerHTML = "";
+  var a = mk("div", "fp2 on"); a.textContent = "All";
+  a.onclick = function() { activeStatuses = new Set(allStatuses); syncStatusPills(); render(); };
   b.appendChild(a);
   b.appendChild(mk("div", "fd"));
-  sts.forEach(function(s) {
-    var info = si(s), p = mk("div", "fp on");
+  allStatuses.forEach(function(s) {
+    var info = si(s), p = mk("div", "fp2 on");
     p.textContent = info.l; p.dataset.s = s;
-    p.onclick = function() { aF.has(s) ? aF.delete(s) : aF.add(s); sF(); render(); };
+    p.onclick = function() {
+      if (activeStatuses.has(s)) activeStatuses.delete(s); else activeStatuses.add(s);
+      syncStatusPills(); render();
+    };
     b.appendChild(p);
   });
 }
 
-function sF() {
-  var ps = document.querySelectorAll(".fp[data-s]");
+function syncStatusPills() {
+  var ps = document.querySelectorAll(".fp2[data-s]");
   var allOn = true;
-  ps.forEach(function(p) { if (!aF.has(p.dataset.s)) allOn = false; p.classList.toggle("on", aF.has(p.dataset.s)); });
-  document.querySelector(".fb .fp:first-child").classList.toggle("on", allOn);
+  ps.forEach(function(p) {
+    var on = activeStatuses.has(p.dataset.s);
+    p.classList.toggle("on", on);
+    if (!on) allOn = false;
+  });
+  document.querySelector(".fb .fp2:first-child").classList.toggle("on", allOn);
 }
 
-function buildLg(sts) {
-  $("lgi").innerHTML = sts.map(function(s) {
-    return '<div class="lgi"><div class="lgs" style="background:' + si(s).c + '"></div>' + si(s).l + '</div>';
-  }).join("");
+// Case type filter
+function buildTypeFilter(tpMap) {
+  var el = $("fr-type"); el.innerHTML = "";
+  allTypes.forEach(function(t) {
+    var label = document.createElement("label");
+    var cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = true;
+    cb.onchange = function() {
+      if (cb.checked) activeTypes.add(t); else activeTypes.delete(t);
+      updateFilterCounts(); render();
+    };
+    var sp = document.createElement("span"); sp.className = "flbl"; sp.textContent = t;
+    var cnt = document.createElement("span"); cnt.className = "fcnt"; cnt.textContent = tpMap[t];
+    label.appendChild(cb); label.appendChild(sp); label.appendChild(cnt);
+    el.appendChild(label);
+  });
 }
 
+// Applicant filter
+function renderAppFilter() {
+  var search = ($("app-search").value || "").toLowerCase();
+  var apMap = {};
+  all.forEach(function(p) { if (p.app) apMap[p.app] = (apMap[p.app] || 0) + 1; });
+  var filtered = allApps.filter(function(a) { return a.toLowerCase().indexOf(search) >= 0; });
+
+  var el = $("fr-app"); el.innerHTML = "";
+  filtered.slice(0, 50).forEach(function(a) {
+    var label = document.createElement("label");
+    var cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = activeApps.has(a);
+    cb.onchange = function() {
+      if (cb.checked) activeApps.add(a); else activeApps.delete(a);
+      updateFilterCounts(); render();
+    };
+    var sp = document.createElement("span"); sp.className = "flbl"; sp.textContent = a;
+    var cnt = document.createElement("span"); cnt.className = "fcnt"; cnt.textContent = apMap[a] || 0;
+    label.appendChild(cb); label.appendChild(sp); label.appendChild(cnt);
+    el.appendChild(label);
+  });
+  if (filtered.length > 50) {
+    var more = document.createElement("div");
+    more.style.cssText = "font-size:11px;color:var(--g400);padding:4px;text-align:center";
+    more.textContent = "+" + (filtered.length - 50) + " more - refine search";
+    el.appendChild(more);
+  }
+}
+
+// Timeline
+function applyTimePreset() {
+  var v = $("tl-preset").value;
+  if (v === "custom") {
+    $("tl-custom").style.display = "block";
+    return;
+  }
+  $("tl-custom").style.display = "none";
+  if (v === "") {
+    tlFrom = null; tlTo = null;
+  } else {
+    var days = parseInt(v);
+    tlTo = null;
+    tlFrom = new Date(); tlFrom.setDate(tlFrom.getDate() - days);
+  }
+  updateFilterCounts(); render();
+}
+
+function applyCustomDates() {
+  var f = $("tl-from").value, t = $("tl-to").value;
+  tlFrom = f ? new Date(f + "T00:00:00") : null;
+  tlTo = t ? new Date(t + "T23:59:59") : null;
+  updateFilterCounts(); render();
+}
+
+function resetTimeline() {
+  $("tl-preset").value = "";
+  $("tl-custom").style.display = "none";
+  $("tl-from").value = ""; $("tl-to").value = "";
+  tlFrom = null; tlTo = null;
+  updateFilterCounts(); render();
+}
+
+// Toggle panels
+function togglePanel(id) {
+  var body = $("fb-" + id), arrow = $("fa-" + id);
+  body.classList.toggle("open");
+  arrow.classList.toggle("open");
+}
+
+function updateFilterCounts() {
+  var typeCnt = allTypes.length - activeTypes.size;
+  $("fc-type").textContent = typeCnt > 0 ? typeCnt + " hidden" : "All";
+  $("fc-type").style.background = typeCnt > 0 ? "#fef3c7" : "";
+  $("fc-type").style.color = typeCnt > 0 ? "#92400e" : "";
+
+  var appCnt = allApps.length - activeApps.size;
+  $("fc-app").textContent = appCnt > 0 ? appCnt + " hidden" : "All";
+  $("fc-app").style.background = appCnt > 0 ? "#fef3c7" : "";
+  $("fc-app").style.color = appCnt > 0 ? "#92400e" : "";
+
+  var hasTime = tlFrom || tlTo;
+  $("fc-time").textContent = hasTime ? "Active" : "All";
+  $("fc-time").style.background = hasTime ? "#fef3c7" : "";
+  $("fc-time").style.color = hasTime ? "#92400e" : "";
+}
+
+// Main filter
 function flt() {
-  var l = all.filter(function(p) { return aF.has(p.st); });
+  var l = all.filter(function(p) {
+    if (!activeStatuses.has(p.st)) return false;
+    if (p.tp && !activeTypes.has(p.tp)) return false;
+    if (p.app && !activeApps.has(p.app)) return false;
+    if (tlFrom && p.datePrimary && p.datePrimary < tlFrom) return false;
+    if (tlTo && p.datePrimary && p.datePrimary > tlTo) return false;
+    return true;
+  });
   if (qv) {
     var ql = qv.toLowerCase();
     l = l.filter(function(p) {
@@ -275,7 +493,8 @@ function flt() {
         p.addr.toLowerCase().indexOf(ql) >= 0 ||
         p.tp.toLowerCase().indexOf(ql) >= 0 ||
         p.app.toLowerCase().indexOf(ql) >= 0 ||
-        p.cd.toLowerCase().indexOf(ql) >= 0;
+        p.cd.toLowerCase().indexOf(ql) >= 0 ||
+        p.cap.toLowerCase().indexOf(ql) >= 0;
     });
   }
   l.sort(function(a, b) { return dsc ? b.ts - a.ts : a.ts - b.ts; });
@@ -286,15 +505,18 @@ function render() { var l = flt(); $("cnt").textContent = l.length; rC(l); rM(l)
 
 function rC(l) {
   var el = $("cl");
-  if (!l.length) { el.innerHTML = '<div class="empty"><p>No matching cases</p><span>Adjust your search or filters</span></div>'; return; }
+  if (!l.length) { el.innerHTML = '<div class="empty"><p>No matching cases</p><span>Adjust your filters or search</span></div>'; return; }
   var fr = document.createDocumentFragment();
   l.forEach(function(p) {
     var s = si(p.st), c = mk("div", "cd" + (sel === p.id ? " on" : ""));
     c.innerHTML =
-      '<div class="cd-top"><div class="cd-dot" style="background:' + s.c + '"></div><div class="cd-t">' + trn(p.nm, 60) + '</div></div>' +
-      '<div class="cd-pills"><span class="pill pill-s" style="background:' + s.c + '">' + s.l + '</span>' + (p.tp ? '<span class="pill pill-t">' + p.tp + '</span>' : '') + '</div>' +
-      '<div class="cd-addr">' + p.addr + '</div>' +
-      '<div class="cd-m"><span>' + p.cs + '</span>' + (p.ds ? '<span>' + p.ds + '</span>' : '') + (p.cd ? '<span>Dist ' + p.cd + '</span>' : '') + '</div>';
+      '<div class="cd-top"><div class="cd-dot" style="background:' + s.c + '"></div><div class="cd-t">' + trn(p.nm, 55) + '</div></div>' +
+      '<div class="cd-pills"><span class="pill pill-s" style="background:' + s.c + '">' + s.l + '</span>' +
+      (p.tp ? '<span class="pill pill-t">' + trn(p.tp, 25) + '</span>' : '') + '</div>' +
+      '<div class="cd-addr">' + (p.addr || "No address") + '</div>' +
+      '<div class="cd-m"><span>' + p.cs + '</span>' +
+      (p.ds ? '<span>' + p.ds + '</span>' : '') +
+      (p.app ? '<span>' + trn(p.app, 20) + '</span>' : '') + '</div>';
     c.onclick = function() { selP(p); };
     fr.appendChild(c);
   });
@@ -321,16 +543,23 @@ function selP(p) {
     (p.sub ? '<span class="pill pill-t">' + p.sub + '</span>' : '') + '</div>';
   h += rw("Case #", p.cs, 1);
   h += rw("Location", p.addr);
-  if (p.ds) h += rw("MPC Date", p.ds);
+  if (p.ds) h += rw("Date Accepted", p.acceptDt ? p.acceptDt.toISOString().slice(0,10) : "");
+  if (p.hearing) h += rw("Hearing Date", p.hearing);
+  if (p.mpcDt) h += rw("MPC Date", p.mpcDt.toISOString().slice(0,10));
   if (p.per) h += rw("Permit Type", p.per);
   if (p.act) h += rw("MPC Action", p.act);
   if (p.vote) h += rw("MPC Vote", p.vote);
-  if (p.compl) h += rw("Completed", p.compl);
   if (p.bill) h += rw("Ordinance #", p.bill, 1);
+  if (p.ez) h += rw("Existing Zoning", p.ez, 1);
+  if (p.nz) h += rw("Proposed Zoning", p.nz, 1);
+  if (p.acres) h += rw("Acreage", p.acres);
   if (p.app) h += rw("Applicant", p.app);
   if (p.rep) h += rw("Representative", p.rep);
   if (p.cd) h += rw("Council District", p.cd);
   if (p.lead) h += rw("Staff Lead", p.lead);
+  if (p.cplan) h += rw("Community Plan", p.cplan);
+  if (p.policy) h += rw("Policy", p.policy);
+  if (p.parcels) h += rw("Parcels", p.parcels, 1);
   if (p.cap) h += '<div style="margin-top:14px;padding:12px;background:var(--g50);border-radius:var(--rs);font-size:12px;color:var(--g600);line-height:1.5">' + p.cap + '</div>';
   h += '<a class="dt-lk" href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank" rel="noopener">View on Official Tracker</a>';
   $("db").innerHTML = h;
@@ -342,17 +571,55 @@ function selP(p) {
   if (cds[idx]) { cds[idx].classList.add("on"); cds[idx].scrollIntoView({behavior: "smooth", block: "nearest"}); }
 }
 
+// Helpers
 function $(id) { return document.getElementById(id); }
 function mk(t, c) { var e = document.createElement(t); e.className = c; return e; }
 function trn(s, n) { return (!s || s.length <= n) ? s || "" : s.slice(0, n - 1) + "..."; }
 function rw(l, v, m) { return '<div class="dt-r"><span class="dt-l">' + l + '</span><span class="dt-v' + (m ? ' mo' : '') + '">' + (v || "") + '</span></div>'; }
 
+// Legend
+function buildLg() {
+  $("lgi").innerHTML = allStatuses.map(function(s) {
+    return '<div class="lgi"><div class="lgs" style="background:' + si(s).c + '"></div>' + si(s).l + '</div>';
+  }).join("");
+}
+
+// Events
 $("dx").onclick = function() { $("dt").classList.remove("open"); sel = null; document.querySelectorAll(".cd").forEach(function(c) { c.classList.remove("on"); }); };
 $("q").oninput = function(e) { qv = e.target.value.trim(); $("qx").classList.toggle("v", !!qv); render(); };
 $("qx").onclick = function() { $("q").value = ""; qv = ""; $("qx").classList.remove("v"); render(); };
 $("srt").onclick = function() { dsc = !dsc; $("srt").textContent = dsc ? "Newest" : "Oldest"; render(); };
 $("lgb").onclick = function() { lgO = !lgO; $("lgp").classList.toggle("open", lgO); };
 map.on("click", function() { if (lgO) { lgO = false; $("lgp").classList.remove("open"); } });
+
+// Load
+async function load() {
+  var sources = [
+    { label: "ArcGIS Online", url: ARCGIS_ONLINE + "?where=1%3D1&outFields=*&outSR=4326&f=json&resultRecordCount=4000&returnGeometry=true" },
+    { label: "Netlify Function", url: FALLBACK_FN }
+  ];
+  for (var i = 0; i < sources.length; i++) {
+    try {
+      $("lm").textContent = "Trying " + sources[i].label + "...";
+      var res = await fetch(sources[i].url);
+      var text = await res.text();
+      var json = JSON.parse(text);
+      if (json.error) continue;
+      var features = parseFeatures(json);
+      if (features.length === 0) continue;
+      all = features;
+      $("ld").classList.add("h");
+      $("sp").className = "spill live"; $("sp").textContent = "Live";
+      buildCatalogs();
+      buildLg();
+      render();
+      return;
+    } catch (e) { continue; }
+  }
+  $("ld").classList.add("h");
+  $("sp").className = "spill off"; $("sp").textContent = "Offline";
+  $("cl").innerHTML = '<div class="empty"><p>Unable to load data</p><span>Nashville data service may be temporarily unavailable.<br><a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank">View official tracker</a></span></div>';
+}
 
 load();
 </script>
