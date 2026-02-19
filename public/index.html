@@ -6,6 +6,9 @@
 <title>Nashville Development Tracker</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20,6 +23,8 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50);color:var(--g800);height:100vh;overflow:hidden}
 .app{display:flex;height:100vh}
+
+/* ---- SIDEBAR ---- */
 .sb{width:420px;min-width:420px;background:var(--w);border-right:1px solid var(--g200);display:flex;flex-direction:column;z-index:600}
 .brand{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--g200);flex-shrink:0}
 .brand-l{display:flex;align-items:center;gap:10px}
@@ -71,11 +76,8 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .frow .fcnt{font-size:10px;color:var(--g400);font-family:'IBM Plex Mono',monospace;flex-shrink:0}
 .f-search{width:100%;border:1px solid var(--g200);border-radius:5px;padding:5px 8px;font-family:inherit;font-size:11.5px;color:var(--g800);outline:none;margin-bottom:6px}
 .f-search:focus{border-color:var(--bl)}
-
-/* Timeline filter */
 .timeline-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .timeline-row select,.timeline-row input[type="date"]{border:1px solid var(--g200);border-radius:5px;padding:5px 8px;font-family:inherit;font-size:11.5px;color:var(--g800);outline:none;background:var(--w)}
-.timeline-row select:focus,.timeline-row input[type="date"]:focus{border-color:var(--bl)}
 .timeline-row select{flex:1;min-width:0}
 .timeline-row input[type="date"]{width:130px}
 .tl-label{font-size:11px;color:var(--g500);white-space:nowrap}
@@ -111,8 +113,7 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .pill{font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:4px;letter-spacing:.15px}
 .pill-s{color:#fff}.pill-t{background:var(--g100);color:var(--g600)}
 .pill-src{font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:.4px;text-transform:uppercase}
-.pill-mpc{background:#ede9fe;color:#6d28d9}
-.pill-bp{background:#e0f2fe;color:#0369a1}
+.pill-mpc{background:#ede9fe;color:#6d28d9}.pill-bp{background:#e0f2fe;color:#0369a1}
 .cd-addr{font-size:11.5px;color:var(--g500);line-height:1.3}
 .cd-m{font-size:10px;color:var(--g400);font-family:'IBM Plex Mono',monospace;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
 .empty{padding:50px 24px;text-align:center}
@@ -121,19 +122,27 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .sf{padding:7px 14px;font-size:9.5px;color:var(--g400);border-top:1px solid var(--g100);flex-shrink:0;text-align:center}
 .sf a{color:var(--bl);text-decoration:none}
 
-/* Map area */
+/* ---- MAP ---- */
 .ma{flex:1;position:relative}
 #map{width:100%;height:100%;background:#f2f3f0}
 .leaflet-container{background:#f2f3f0!important}
 .leaflet-control-zoom{border:none!important;box-shadow:var(--sh)!important;border-radius:var(--rs)!important;overflow:hidden}
 .leaflet-control-zoom a{width:34px!important;height:34px!important;line-height:34px!important;font-size:16px!important;color:var(--g700)!important;border-bottom:1px solid var(--g200)!important}
+
+/* Marker styles */
 .mk{position:relative;display:flex;align-items:center;justify-content:center}
 .mk-d{width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .15s}
 .mk:hover .mk-d{transform:scale(1.35)}
-.mk-bp .mk-d{width:8px;height:8px;border-width:1.5px;opacity:.7}
+.mk-bp .mk-d{width:8px;height:8px;border-width:1.5px;opacity:.8}
 .leaflet-tooltip{font-family:'Instrument Sans',sans-serif!important;font-size:12px!important;padding:6px 10px!important;border-radius:6px!important;box-shadow:var(--sh)!important;border:1px solid var(--g200)!important}
 
-/* Detail panel */
+/* Cluster styles */
+.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(37,99,235,.15)!important}
+.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:var(--bl)!important;color:#fff!important;font-family:'IBM Plex Mono',monospace!important;font-weight:600!important;font-size:12px!important}
+.marker-cluster-medium{background:rgba(37,99,235,.2)!important}
+.marker-cluster-large{background:rgba(37,99,235,.25)!important}
+
+/* ---- DETAIL PANEL ---- */
 .dt{position:absolute;top:0;right:0;width:390px;height:100%;background:var(--w);border-left:1px solid var(--g200);z-index:900;display:none;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,.08);overflow:hidden}
 .dt.open{display:flex;animation:sI .25s ease}
 @keyframes sI{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
@@ -146,8 +155,17 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .dt-r{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--g100);font-size:13px}
 .dt-l{color:var(--g500);font-weight:500}.dt-v{color:var(--g800);font-weight:500;text-align:right;max-width:55%;word-break:break-word}
 .dt-v.mo{font-family:'IBM Plex Mono',monospace;font-size:11.5px}
-.dt-lk{display:block;text-align:center;margin-top:18px;font-size:12px;color:var(--bl);text-decoration:none;padding:10px;background:var(--bl-l);border-radius:var(--rs);font-weight:500;transition:background .15s}
+.dt-lk{display:block;text-align:center;margin-top:10px;font-size:12px;color:var(--bl);text-decoration:none;padding:10px;background:var(--bl-l);border-radius:var(--rs);font-weight:500;transition:background .15s}
 .dt-lk:hover{background:var(--bl-s)}
+.dt-lk+.dt-lk{margin-top:6px}
+.dt-sep{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--g400);margin-top:16px;margin-bottom:4px;padding-bottom:4px;border-bottom:2px solid var(--g200)}
+
+/* ---- MAP CONTROLS ---- */
+.mc{position:absolute;top:14px;right:14px;z-index:800;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.mc-b{background:var(--w);border:1px solid var(--g200);border-radius:var(--rs);padding:7px 11px;cursor:pointer;box-shadow:var(--sh);font-family:inherit;font-size:11px;font-weight:500;color:var(--g600);transition:all .15s;user-select:none;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.mc-b:hover{background:var(--g50)}
+.mc-b.on{background:var(--bl);color:#fff;border-color:var(--bl)}
+.mc-b svg{width:14px;height:14px}
 
 /* Legend */
 .lgb{position:absolute;bottom:18px;left:14px;z-index:800;background:var(--w);border:1px solid var(--g200);border-radius:var(--rs);padding:7px 12px;cursor:pointer;box-shadow:var(--sh);font-family:inherit;font-size:11.5px;font-weight:500;color:var(--g600);display:flex;align-items:center;gap:6px;transition:all .15s;user-select:none}
@@ -170,6 +188,7 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 .ld .sub{font-size:11px;color:var(--g400);margin-top:4px}
 .ld .pbar{width:200px;height:4px;background:var(--g200);border-radius:4px;margin-top:10px;overflow:hidden}
 .ld .pfill{height:100%;background:var(--bl);border-radius:4px;transition:width .3s;width:0}
+
 @media(max-width:860px){.sb{width:100%;min-width:100%;max-height:50vh;border-right:none;border-bottom:1px solid var(--g200)}.app{flex-direction:column}.dt{width:100%}}
 </style>
 </head>
@@ -177,398 +196,255 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 <div class="app">
 <div class="sb">
   <div class="brand"><div class="brand-l"><div class="brand-m">N</div><h1>Dev Tracker <span>Nashville</span></h1></div><div class="spill load" id="sp">Loading</div></div>
-
-  <!-- Data source toggle -->
   <div class="ds-bar">
     <div class="ds-btn on" id="ds-mpc" onclick="toggleSource('mpc')">MPC Cases <span class="ds-cnt" id="ds-mpc-cnt"></span></div>
     <div class="ds-btn bp on" id="ds-bp" onclick="toggleSource('bp')">Building Permits <span class="ds-cnt" id="ds-bp-cnt"></span></div>
   </div>
-
   <div class="sw"><div class="sb2"><svg class="si" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="q" placeholder="Search case #, project, address, permit..." autocomplete="off"><button class="sx" id="qx">&times;</button></div></div>
-
-  <!-- Filter: Case/Permit Type -->
-  <div class="fp-wrap" id="fw-type">
-    <div class="fp-toggle" onclick="togglePanel('type')">
-      <span class="fp-label">Type <span class="fp-count" id="fc-type"></span></span>
-      <span class="fp-arrow" id="fa-type">&#9660;</span>
-    </div>
-    <div class="fp-body" id="fb-type">
-      <input type="text" class="f-search" id="type-search" placeholder="Search types..." oninput="renderTypeFilter()">
-      <div class="frow" id="fr-type"></div>
-    </div>
-  </div>
-
-  <!-- Filter: Applicant/Contractor -->
-  <div class="fp-wrap" id="fw-app">
-    <div class="fp-toggle" onclick="togglePanel('app')">
-      <span class="fp-label">Applicant / Contractor <span class="fp-count" id="fc-app"></span></span>
-      <span class="fp-arrow" id="fa-app">&#9660;</span>
-    </div>
-    <div class="fp-body" id="fb-app">
-      <input type="text" class="f-search" id="app-search" placeholder="Search applicants..." oninput="renderAppFilter()">
-      <div class="frow" id="fr-app"></div>
-    </div>
-  </div>
-
-  <!-- Filter: Timeline -->
-  <div class="fp-wrap" id="fw-time">
-    <div class="fp-toggle" onclick="togglePanel('time')">
-      <span class="fp-label">Timeline <span class="fp-count" id="fc-time"></span></span>
-      <span class="fp-arrow" id="fa-time">&#9660;</span>
-    </div>
-    <div class="fp-body" id="fb-time">
-      <div class="timeline-row">
-        <select id="tl-preset" onchange="applyTimePreset()">
-          <option value="">All time</option>
-          <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
-          <option value="180">Last 6 months</option>
-          <option value="365">Last year</option>
-          <option value="1825">Last 5 years</option>
-          <option value="custom">Custom range</option>
-        </select>
-        <button class="tl-reset" onclick="resetTimeline()">Reset</button>
-      </div>
-      <div id="tl-custom" style="display:none;margin-top:8px">
-        <div class="timeline-row">
-          <span class="tl-label">From</span>
-          <input type="date" id="tl-from" onchange="applyCustomDates()">
-          <span class="tl-label">To</span>
-          <input type="date" id="tl-to" onchange="applyCustomDates()">
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Status pills -->
+  <div class="fp-wrap"><div class="fp-toggle" onclick="togglePanel('type')"><span class="fp-label">Type <span class="fp-count" id="fc-type"></span></span><span class="fp-arrow" id="fa-type">&#9660;</span></div><div class="fp-body" id="fb-type"><input type="text" class="f-search" id="type-search" placeholder="Search types..." oninput="renderTypeFilter()"><div class="frow" id="fr-type"></div></div></div>
+  <div class="fp-wrap"><div class="fp-toggle" onclick="togglePanel('app')"><span class="fp-label">Applicant / Contractor <span class="fp-count" id="fc-app"></span></span><span class="fp-arrow" id="fa-app">&#9660;</span></div><div class="fp-body" id="fb-app"><input type="text" class="f-search" id="app-search" placeholder="Search applicants..." oninput="renderAppFilter()"><div class="frow" id="fr-app"></div></div></div>
+  <div class="fp-wrap"><div class="fp-toggle" onclick="togglePanel('time')"><span class="fp-label">Timeline <span class="fp-count" id="fc-time"></span></span><span class="fp-arrow" id="fa-time">&#9660;</span></div><div class="fp-body" id="fb-time"><div class="timeline-row"><select id="tl-preset" onchange="applyTimePreset()"><option value="">All time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="180">Last 6 months</option><option value="365">Last year</option><option value="1825">Last 5 years</option><option value="custom">Custom range</option></select><button class="tl-reset" onclick="resetTimeline()">Reset</button></div><div id="tl-custom" style="display:none;margin-top:8px"><div class="timeline-row"><span class="tl-label">From</span><input type="date" id="tl-from" onchange="applyCustomDates()"><span class="tl-label">To</span><input type="date" id="tl-to" onchange="applyCustomDates()"></div></div></div></div>
   <div class="fb" id="fb-status"></div>
-
   <div class="rb"><span class="rc"><strong id="cnt">0</strong> cases</span><button class="btn2" id="srt">Newest</button></div>
-
   <div class="cl" id="cl"></div>
-
-  <div class="sf">Sources: <a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank" rel="noopener">MPC Planning</a> &middot; <a href="https://datanashvillegov-nashville.hub.arcgis.com/datasets/Nashville::building-permit-applications" target="_blank" rel="noopener">Codes Dept</a></div>
+  <div class="sf">Sources: <a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank">MPC</a> &middot; <a href="https://datanashvillegov-nashville.hub.arcgis.com/datasets/Nashville::building-permit-applications" target="_blank">Codes</a> &middot; <a href="https://www.padctn.org/" target="_blank">Assessor</a></div>
 </div>
 <div class="ma">
   <div id="map"></div>
+
+  <!-- Map layer controls (LandGlide-inspired) -->
+  <div class="mc">
+    <div class="mc-b" id="mc-sat" onclick="toggleSatellite()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Satellite</div>
+    <div class="mc-b" id="mc-parcels" onclick="toggleParcels()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Parcels</div>
+  </div>
+
   <div class="ld" id="ld"><div class="ldr"></div><p id="lm">Loading development data...</p><div class="sub" id="ls"></div><div class="pbar"><div class="pfill" id="pf"></div></div></div>
   <div class="lgb" id="lgb"><div class="lgd"><span style="background:var(--gn)"></span><span style="background:var(--am)"></span><span style="background:var(--tl)"></span></div>Legend</div>
-  <div class="lgp" id="lgp">
-    <div class="lgh">MPC Case Status</div>
-    <div id="lgi"></div>
-    <div class="lg-sep"></div>
-    <div class="lgh">Building Permits</div>
-    <div class="lgi"><div class="lgs" style="background:var(--tl)"></div>Permit Application</div>
-  </div>
+  <div class="lgp" id="lgp"><div class="lgh">MPC Case Status</div><div id="lgi"></div><div class="lg-sep"></div><div class="lgh">Building Permits</div><div class="lgi"><div class="lgs" style="background:var(--tl)"></div>Permit Application</div></div>
   <div class="dt" id="dt"><div class="dt-top"><div class="dt-n" id="dn"></div><button class="dt-x" id="dx">&times;</button></div><div class="dt-bd" id="db"></div></div>
 </div>
 </div>
 <script>
-/* ---- ENDPOINTS ---- */
-var MPC_DIRECT = "https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services/Development_Tracker_Cases_view/FeatureServer/1/query";
-var BP_DIRECT  = "https://services2.arcgis.com/CyVvlIiUfRBmMQuu/arcgis/rest/services/Building_Permits_Applications_view/FeatureServer/0/query";
-var MPC_FN = "/api/mpc-cases";
-var BP_FN  = "/api/building-permits";
-var PAGE = 2000;
+/* ---- CONFIG ---- */
+var MPC_URL="https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services/Development_Tracker_Cases_view/FeatureServer/1/query";
+var BP_URL="https://services2.arcgis.com/CyVvlIiUfRBmMQuu/arcgis/rest/services/Building_Permits_Applications_view/FeatureServer/0/query";
+var MPC_FN="/api/mpc-cases", BP_FN="/api/building-permits", PAGE=2000;
+var PARCEL_TILES="https://maps.nashville.gov/arcgis/rest/services/Cadastral/Parcels/MapServer/tile/{z}/{y}/{x}";
+var ASSESSOR_URL="https://www.padctn.org/prc/property-detail?mapGroup=";
 
-/* ---- STATUS COLORS ---- */
-var ST = {
-  New:{l:"New",c:"#16a34a"},Pending:{l:"Pending",c:"#d97706"},Active:{l:"Active",c:"#7c3aed"},
-  Complete:{l:"Complete",c:"#64748b"},Approved:{l:"Approved",c:"#16a34a"},Cancelled:{l:"Cancelled",c:"#dc2626"},
-  Expired:{l:"Expired",c:"#9ca3af"},Issued:{l:"Issued",c:"#2563eb"},Closed:{l:"Closed",c:"#64748b"},
-  Withdrawn:{l:"Withdrawn",c:"#9ca3af"},Deferred:{l:"Deferred",c:"#f59e0b"}
-};
+/* ---- STATUS MAP ---- */
+var ST={New:{l:"New",c:"#16a34a"},Pending:{l:"Pending",c:"#d97706"},Active:{l:"Active",c:"#7c3aed"},Complete:{l:"Complete",c:"#64748b"},Approved:{l:"Approved",c:"#16a34a"},Cancelled:{l:"Cancelled",c:"#dc2626"},Expired:{l:"Expired",c:"#9ca3af"},Issued:{l:"Issued",c:"#2563eb"},Closed:{l:"Closed",c:"#64748b"},Withdrawn:{l:"Withdrawn",c:"#9ca3af"},Deferred:{l:"Deferred",c:"#f59e0b"}};
 function si(s){return ST[s]||{l:s||"Unknown",c:"#64748b"};}
-var BP_COLOR = "#0891b2";
+var BP_COLOR="#0891b2";
 
 /* ---- STATE ---- */
-var mpcData=[], bpData=[], all=[];
-var qv="", dsc=true, sel=null, mks={}, lgO=false;
-var showMpc=true, showBp=true;
-var activeStatuses=new Set(), activeTypes=new Set(), activeApps=new Set();
-var allStatuses=[], allTypes=[], allApps=[];
-var tlFrom=null, tlTo=null;
+var mpcData=[],bpData=[],all=[],qv="",dsc=true,sel=null,lgO=false;
+var showMpc=true,showBp=true;
+var activeStatuses=new Set(),activeTypes=new Set(),activeApps=new Set();
+var allStatuses=[],allTypes=[],allApps=[];
+var tlFrom=null,tlTo=null;
 
+/* ---- MAP ---- */
 var map=L.map("map",{zoomControl:false}).setView([36.162,-86.775],12);
-L.control.zoom({position:"topright"}).addTo(map);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{attribution:"OpenStreetMap, CARTO",maxZoom:19}).addTo(map);
+L.control.zoom({position:"bottomright"}).addTo(map);
 
-/* ---- PARSE MPC ---- */
+var streetLayer=L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{attribution:"OpenStreetMap, CARTO",maxZoom:19}).addTo(map);
+var satLayer=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{attribution:"Esri",maxZoom:19});
+var satLabels=L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png",{maxZoom:19,pane:"overlayPane"});
+var parcelLayer=L.tileLayer(PARCEL_TILES,{maxZoom:19,opacity:.6,attribution:"Metro Nashville GIS"});
+var satOn=false,parcelsOn=false;
+
+/* Cluster group */
+var cluster=L.markerClusterGroup({chunkedLoading:true,maxClusterRadius:50,spiderfyOnMaxZoom:true,showCoverageOnHover:false,zoomToBoundsOnClick:true,disableClusteringAtZoom:17,iconCreateFunction:function(c){var n=c.getChildCount();var sz=n<50?"small":n<200?"medium":"large";return L.divIcon({html:"<div>"+n+"</div>",className:"marker-cluster marker-cluster-"+sz,iconSize:[36,36]});}});
+map.addLayer(cluster);
+
+function toggleSatellite(){
+  satOn=!satOn;
+  if(satOn){map.removeLayer(streetLayer);map.addLayer(satLayer);map.addLayer(satLabels);}
+  else{map.removeLayer(satLayer);map.removeLayer(satLabels);map.addLayer(streetLayer);}
+  $("mc-sat").classList.toggle("on",satOn);
+}
+function toggleParcels(){
+  parcelsOn=!parcelsOn;
+  if(parcelsOn)map.addLayer(parcelLayer);else map.removeLayer(parcelLayer);
+  $("mc-parcels").classList.toggle("on",parcelsOn);
+}
+
+/* ---- PARSERS ---- */
 function parseMPC(json){
   if(!json.features)return[];
   return json.features.filter(function(f){return f.geometry&&(f.geometry.rings||f.geometry.x!=null);}).map(function(f,i){
-    var a=f.attributes||{};
-    var mDt=a.MPC_DATE?new Date(a.MPC_DATE):null;
-    var aDt=a.DATE_ACCEPTED?new Date(a.DATE_ACCEPTED):null;
-    var dp=aDt||mDt;
+    var a=f.attributes||{},mDt=a.MPC_DATE?new Date(a.MPC_DATE):null,aDt=a.DATE_ACCEPTED?new Date(a.DATE_ACCEPTED):null,dp=aDt||mDt;
     var lat,lng;
     if(f.geometry.y!=null){lat=f.geometry.y;lng=f.geometry.x;}
-    else if(f.geometry.rings&&f.geometry.rings[0]){var r=f.geometry.rings[0];var sx=0,sy=0;for(var j=0;j<r.length;j++){sx+=r[j][0];sy+=r[j][1];}lng=sx/r.length;lat=sy/r.length;}
+    else if(f.geometry.rings&&f.geometry.rings[0]){var r=f.geometry.rings[0],sx=0,sy=0;for(var j=0;j<r.length;j++){sx+=r[j][0];sy+=r[j][1];}lng=sx/r.length;lat=sy/r.length;}
     return{id:"mpc-"+(a.OBJECTID||i),src:"mpc",cs:a.MPCNUM||"",nm:a.PROJECT_DESC||a.MPCNUM||"Unnamed",
-      tp:a.CASE_TYPE_DESC||"",sub:a.SUB_TYPE_DESC||"",per:a.PERTYPE||"",
-      st:a.PSTAT||"Active",addr:a.LOCATION_DESC||"",bill:a.BILLNUM||"",
-      mpcDt:mDt,acceptDt:aDt,datePrimary:dp,ds:dp?dp.toISOString().slice(0,10):"",ts:dp?dp.getTime():0,
-      lat:lat,lng:lng,act:a.MPC_ACTION_DESC||"",vote:a.MPC_VOTE||"",
-      app:a.APP_NAME||"",rep:a.APP_REP||"",cd:a.CD||"",lead:a.PER_LEAD||"",
-      cap:a.CAPTION||"",ez:a.ExistingZoning||"",nz:a.NewZoning||"",
-      acres:a.Acreage||"",policy:a.Policy||"",cplan:a.CommunityPlan||"",
-      parcels:a.Parcels||"",hearing:a.HEARING_DATE||""};
+      tp:a.CASE_TYPE_DESC||"",sub:a.SUB_TYPE_DESC||"",per:a.PERTYPE||"",st:a.PSTAT||"Active",
+      addr:a.LOCATION_DESC||"",bill:a.BILLNUM||"",mpcDt:mDt,acceptDt:aDt,datePrimary:dp,
+      ds:dp?dp.toISOString().slice(0,10):"",ts:dp?dp.getTime():0,lat:lat,lng:lng,
+      act:a.MPC_ACTION_DESC||"",vote:a.MPC_VOTE||"",app:a.APP_NAME||"",rep:a.APP_REP||"",
+      cd:a.CD||"",lead:a.PER_LEAD||"",cap:a.CAPTION||"",ez:a.ExistingZoning||"",nz:a.NewZoning||"",
+      acres:a.Acreage||"",policy:a.Policy||"",cplan:a.CommunityPlan||"",parcels:a.Parcels||"",
+      hearing:a.HEARING_DATE||"",mapGroup:a.Parcels?a.Parcels.replace(/Map\s*/i,"").split(",")[0].trim():""};
   });
 }
-
-/* ---- PARSE BUILDING PERMITS ---- */
 function parseBP(json){
   if(!json.features)return[];
   return json.features.filter(function(f){return f.geometry&&f.geometry.x!=null;}).map(function(f,i){
     var a=f.attributes||{};
-    // Common field names for Nashville building permits
     var dt=a.date_entered?new Date(a.date_entered):a.DATE_ENTERED?new Date(a.DATE_ENTERED):null;
     var issDt=a.date_issued?new Date(a.date_issued):a.DATE_ISSUED?new Date(a.DATE_ISSUED):null;
     var dp=dt||issDt;
-    var permitNum=a.permit_number||a.PERMIT_NUMBER||a.permit_num||a.PERMIT_NUM||"";
+    var pn=a.permit_number||a.PERMIT_NUMBER||a.permit_num||a.PERMIT_NUM||"";
     var addr=a.address||a.ADDRESS||a.mapped_location_address||a.location||"";
     var pType=a.permit_type_description||a.PERMIT_TYPE_DESCRIPTION||a.permit_type||a.PERMIT_TYPE||a.type_description||a.TYPE_DESCRIPTION||"";
-    var pSubType=a.permit_sub_type_description||a.PERMIT_SUB_TYPE_DESCRIPTION||a.permit_subtype||a.PERMIT_SUBTYPE||"";
+    var pSub=a.permit_sub_type_description||a.PERMIT_SUB_TYPE_DESCRIPTION||a.permit_subtype||"";
     var status=a.status||a.STATUS||a.permit_status||a.PERMIT_STATUS||"";
     var contractor=a.contractor_company||a.CONTRACTOR_COMPANY||a.contact||a.CONTACT||"";
     var desc=a.description||a.DESCRIPTION||a.purpose||a.PURPOSE||"";
-    var cost=a.const_cost||a.CONST_COST||a.construction_cost||a.CONSTRUCTION_COST||"";
-    // Normalize status
-    var normSt=status;
-    if(status){
-      var sl=status.toLowerCase();
-      if(sl.indexOf("issue")>=0)normSt="Issued";
-      else if(sl.indexOf("close")>=0)normSt="Closed";
-      else if(sl.indexOf("cancel")>=0)normSt="Cancelled";
-      else if(sl.indexOf("expire")>=0)normSt="Expired";
-      else if(sl.indexOf("active")>=0||sl.indexOf("review")>=0)normSt="Active";
-      else if(sl.indexOf("pend")>=0)normSt="Pending";
-      else if(sl.indexOf("approv")>=0)normSt="Approved";
-    }
-    return{id:"bp-"+(a.OBJECTID||i),src:"bp",cs:permitNum,
-      nm:desc||pType||permitNum||"Building Permit",
-      tp:pType+(pSubType?" - "+pSubType:""),sub:pSubType,per:pType,
-      st:normSt||"Active",addr:addr,bill:"",
+    var cost=a.const_cost||a.CONST_COST||a.construction_cost||"";
+    var ns=status;if(status){var sl=status.toLowerCase();if(sl.indexOf("issue")>=0)ns="Issued";else if(sl.indexOf("close")>=0)ns="Closed";else if(sl.indexOf("cancel")>=0)ns="Cancelled";else if(sl.indexOf("expire")>=0)ns="Expired";else if(sl.indexOf("active")>=0||sl.indexOf("review")>=0)ns="Active";else if(sl.indexOf("pend")>=0)ns="Pending";else if(sl.indexOf("approv")>=0)ns="Approved";}
+    return{id:"bp-"+(a.OBJECTID||i),src:"bp",cs:pn,nm:desc||pType||pn||"Building Permit",
+      tp:pType+(pSub?" - "+pSub:""),sub:pSub,per:pType,st:ns||"Active",addr:addr,bill:"",
       mpcDt:null,acceptDt:dt,datePrimary:dp,ds:dp?dp.toISOString().slice(0,10):"",ts:dp?dp.getTime():0,
-      lat:f.geometry.y,lng:f.geometry.x,act:"",vote:"",
-      app:contractor,rep:"",cd:"",lead:"",
-      cap:desc,ez:"",nz:"",acres:"",policy:"",cplan:"",
-      parcels:"",hearing:"",
-      cost:cost,issDt:issDt};
+      lat:f.geometry.y,lng:f.geometry.x,act:"",vote:"",app:contractor,rep:"",cd:"",lead:"",
+      cap:desc,ez:"",nz:"",acres:"",policy:"",cplan:"",parcels:"",hearing:"",
+      cost:cost,issDt:issDt,mapGroup:""};
   });
 }
 
 /* ---- PAGINATED FETCH ---- */
-async function fetchPaginated(baseUrl,label,onProgress){
-  var allFeatures=[],offset=0,hasMore=true,fields=null,gType=null,sRef=null;
-  while(hasMore){
-    var params=new URLSearchParams({where:"1=1",outFields:"*",outSR:"4326",f:"json",resultRecordCount:String(PAGE),resultOffset:String(offset),returnGeometry:"true",orderByFields:"OBJECTID ASC"});
-    var res=await fetch(baseUrl+"?"+params.toString());
-    var json=await res.json();
-    if(json.error)throw new Error(json.error.message||"Query error");
-    if(!fields&&json.fields)fields=json.fields;
-    if(!gType&&json.geometryType)gType=json.geometryType;
-    if(!sRef&&json.spatialReference)sRef=json.spatialReference;
-    if(json.features&&json.features.length>0){allFeatures=allFeatures.concat(json.features);offset+=json.features.length;if(onProgress)onProgress(allFeatures.length);}
-    if(!json.features||json.features.length<PAGE||!json.exceededTransferLimit)hasMore=false;
-    if(offset>=100000)hasMore=false;
+async function fetchPaginated(url,onProg){
+  var feats=[],off=0,more=true,fields=null,gT=null,sR=null;
+  while(more){
+    var p=new URLSearchParams({where:"1=1",outFields:"*",outSR:"4326",f:"json",resultRecordCount:String(PAGE),resultOffset:String(off),returnGeometry:"true",orderByFields:"OBJECTID ASC"});
+    var r=await fetch(url+"?"+p.toString());var j=await r.json();
+    if(j.error)throw new Error(j.error.message||"Query error");
+    if(!fields&&j.fields)fields=j.fields;if(!gT&&j.geometryType)gT=j.geometryType;if(!sR&&j.spatialReference)sR=j.spatialReference;
+    if(j.features&&j.features.length>0){feats=feats.concat(j.features);off+=j.features.length;if(onProg)onProg(feats.length);}
+    if(!j.features||j.features.length<PAGE||!j.exceededTransferLimit)more=false;
+    if(off>=100000)more=false;
   }
-  return{features:allFeatures,fields:fields,geometryType:gType,spatialReference:sRef};
+  return{features:feats,fields:fields};
 }
 
 /* ---- BUILD CATALOGS ---- */
 function rebuildAll(){
-  all=[];
-  if(showMpc)all=all.concat(mpcData);
-  if(showBp)all=all.concat(bpData);
-  buildCatalogs();
-  render();
+  all=[];if(showMpc)all=all.concat(mpcData);if(showBp)all=all.concat(bpData);
+  buildCatalogs();render();
 }
-
 function buildCatalogs(){
-  var stMap={},tpMap={},apMap={};
-  all.forEach(function(p){
-    stMap[p.st]=(stMap[p.st]||0)+1;
-    if(p.tp)tpMap[p.tp]=(tpMap[p.tp]||0)+1;
-    if(p.app)apMap[p.app]=(apMap[p.app]||0)+1;
-  });
-  allStatuses=Object.keys(stMap).sort();
-  allTypes=Object.keys(tpMap).sort();
-  allApps=Object.keys(apMap).sort(function(a,b){return apMap[b]-apMap[a];});
-  activeStatuses=new Set(allStatuses);
-  activeTypes=new Set(allTypes);
-  activeApps=new Set(allApps);
-  buildStatusPills();
-  renderTypeFilter();
-  renderAppFilter();
-  updateFilterCounts();
-  buildLg();
+  var stM={},tpM={},apM={};
+  all.forEach(function(p){stM[p.st]=(stM[p.st]||0)+1;if(p.tp)tpM[p.tp]=(tpM[p.tp]||0)+1;if(p.app)apM[p.app]=(apM[p.app]||0)+1;});
+  allStatuses=Object.keys(stM).sort();allTypes=Object.keys(tpM).sort();allApps=Object.keys(apM).sort(function(a,b){return apM[b]-apM[a];});
+  activeStatuses=new Set(allStatuses);activeTypes=new Set(allTypes);activeApps=new Set(allApps);
+  buildStatusPills();renderTypeFilter();renderAppFilter();updateFilterCounts();buildLg();
 }
-
 function buildStatusPills(){
   var b=$("fb-status");b.innerHTML="";
-  var a=mk("div","fp2 on");a.textContent="All";
-  a.onclick=function(){activeStatuses=new Set(allStatuses);syncStatusPills();render();};
-  b.appendChild(a);b.appendChild(mk("div","fd"));
-  allStatuses.forEach(function(s){
-    var info=si(s),p=mk("div","fp2 on");p.textContent=info.l;p.dataset.s=s;
-    p.onclick=function(){if(activeStatuses.has(s))activeStatuses.delete(s);else activeStatuses.add(s);syncStatusPills();render();};
-    b.appendChild(p);
-  });
+  var a=mk("div","fp2 on");a.textContent="All";a.onclick=function(){activeStatuses=new Set(allStatuses);syncStatusPills();render();};b.appendChild(a);b.appendChild(mk("div","fd"));
+  allStatuses.forEach(function(s){var info=si(s),p=mk("div","fp2 on");p.textContent=info.l;p.dataset.s=s;p.onclick=function(){if(activeStatuses.has(s))activeStatuses.delete(s);else activeStatuses.add(s);syncStatusPills();render();};b.appendChild(p);});
 }
-function syncStatusPills(){
-  var ps=document.querySelectorAll(".fp2[data-s]");var allOn=true;
-  ps.forEach(function(p){var on=activeStatuses.has(p.dataset.s);p.classList.toggle("on",on);if(!on)allOn=false;});
-  document.querySelector(".fb .fp2:first-child").classList.toggle("on",allOn);
-}
-
-/* ---- TYPE FILTER ---- */
+function syncStatusPills(){var ps=document.querySelectorAll(".fp2[data-s]");var aO=true;ps.forEach(function(p){var on=activeStatuses.has(p.dataset.s);p.classList.toggle("on",on);if(!on)aO=false;});document.querySelector(".fb .fp2:first-child").classList.toggle("on",aO);}
 function renderTypeFilter(){
-  var search=($("type-search")?$("type-search").value:"").toLowerCase();
-  var tpMap={};
-  all.forEach(function(p){if(p.tp)tpMap[p.tp]=(tpMap[p.tp]||0)+1;});
-  var filtered=allTypes.filter(function(t){return t.toLowerCase().indexOf(search)>=0;});
+  var s=($("type-search")?$("type-search").value:"").toLowerCase();
+  var tM={};all.forEach(function(p){if(p.tp)tM[p.tp]=(tM[p.tp]||0)+1;});
+  var fl=allTypes.filter(function(t){return t.toLowerCase().indexOf(s)>=0;});
   var el=$("fr-type");el.innerHTML="";
-  filtered.slice(0,60).forEach(function(t){
-    var label=document.createElement("label");
-    var cb=document.createElement("input");cb.type="checkbox";cb.checked=activeTypes.has(t);
-    cb.onchange=function(){if(cb.checked)activeTypes.add(t);else activeTypes.delete(t);updateFilterCounts();render();};
-    var sp=document.createElement("span");sp.className="flbl";sp.textContent=t;
-    var cnt=document.createElement("span");cnt.className="fcnt";cnt.textContent=tpMap[t]||0;
-    label.appendChild(cb);label.appendChild(sp);label.appendChild(cnt);el.appendChild(label);
-  });
-  if(filtered.length>60){var more=document.createElement("div");more.style.cssText="font-size:11px;color:var(--g400);padding:4px;text-align:center";more.textContent="+"+(filtered.length-60)+" more";el.appendChild(more);}
+  fl.slice(0,60).forEach(function(t){var l=document.createElement("label");var cb=document.createElement("input");cb.type="checkbox";cb.checked=activeTypes.has(t);cb.onchange=function(){if(cb.checked)activeTypes.add(t);else activeTypes.delete(t);updateFilterCounts();render();};var sp=document.createElement("span");sp.className="flbl";sp.textContent=t;var cn=document.createElement("span");cn.className="fcnt";cn.textContent=tM[t]||0;l.appendChild(cb);l.appendChild(sp);l.appendChild(cn);el.appendChild(l);});
+  if(fl.length>60){var m=document.createElement("div");m.style.cssText="font-size:11px;color:var(--g400);padding:4px;text-align:center";m.textContent="+"+(fl.length-60)+" more";el.appendChild(m);}
 }
-
-/* ---- APP FILTER ---- */
 function renderAppFilter(){
-  var search=($("app-search")?$("app-search").value:"").toLowerCase();
-  var apMap={};all.forEach(function(p){if(p.app)apMap[p.app]=(apMap[p.app]||0)+1;});
-  var filtered=allApps.filter(function(a){return a.toLowerCase().indexOf(search)>=0;});
+  var s=($("app-search")?$("app-search").value:"").toLowerCase();
+  var aM={};all.forEach(function(p){if(p.app)aM[p.app]=(aM[p.app]||0)+1;});
+  var fl=allApps.filter(function(a){return a.toLowerCase().indexOf(s)>=0;});
   var el=$("fr-app");el.innerHTML="";
-  filtered.slice(0,50).forEach(function(a){
-    var label=document.createElement("label");
-    var cb=document.createElement("input");cb.type="checkbox";cb.checked=activeApps.has(a);
-    cb.onchange=function(){if(cb.checked)activeApps.add(a);else activeApps.delete(a);updateFilterCounts();render();};
-    var sp=document.createElement("span");sp.className="flbl";sp.textContent=a;
-    var cnt=document.createElement("span");cnt.className="fcnt";cnt.textContent=apMap[a]||0;
-    label.appendChild(cb);label.appendChild(sp);label.appendChild(cnt);el.appendChild(label);
-  });
-  if(filtered.length>50){var more=document.createElement("div");more.style.cssText="font-size:11px;color:var(--g400);padding:4px;text-align:center";more.textContent="+"+(filtered.length-50)+" more — refine search";el.appendChild(more);}
+  fl.slice(0,50).forEach(function(a){var l=document.createElement("label");var cb=document.createElement("input");cb.type="checkbox";cb.checked=activeApps.has(a);cb.onchange=function(){if(cb.checked)activeApps.add(a);else activeApps.delete(a);updateFilterCounts();render();};var sp=document.createElement("span");sp.className="flbl";sp.textContent=a;var cn=document.createElement("span");cn.className="fcnt";cn.textContent=aM[a]||0;l.appendChild(cb);l.appendChild(sp);l.appendChild(cn);el.appendChild(l);});
+  if(fl.length>50){var m=document.createElement("div");m.style.cssText="font-size:11px;color:var(--g400);padding:4px;text-align:center";m.textContent="+"+(fl.length-50)+" more";el.appendChild(m);}
 }
-
-/* ---- TIMELINE ---- */
 function applyTimePreset(){var v=$("tl-preset").value;if(v==="custom"){$("tl-custom").style.display="block";return;}$("tl-custom").style.display="none";if(v===""){tlFrom=null;tlTo=null;}else{tlFrom=new Date();tlFrom.setDate(tlFrom.getDate()-parseInt(v));tlTo=null;}updateFilterCounts();render();}
 function applyCustomDates(){var f=$("tl-from").value,t=$("tl-to").value;tlFrom=f?new Date(f+"T00:00:00"):null;tlTo=t?new Date(t+"T23:59:59"):null;updateFilterCounts();render();}
 function resetTimeline(){$("tl-preset").value="";$("tl-custom").style.display="none";$("tl-from").value="";$("tl-to").value="";tlFrom=null;tlTo=null;updateFilterCounts();render();}
 function togglePanel(id){$("fb-"+id).classList.toggle("open");$("fa-"+id).classList.toggle("open");}
-
 function updateFilterCounts(){
   var tc=allTypes.length-activeTypes.size;$("fc-type").textContent=tc>0?tc+" hidden":"All";$("fc-type").style.background=tc>0?"#fef3c7":"";$("fc-type").style.color=tc>0?"#92400e":"";
   var ac=allApps.length-activeApps.size;$("fc-app").textContent=ac>0?ac+" hidden":"All";$("fc-app").style.background=ac>0?"#fef3c7":"";$("fc-app").style.color=ac>0?"#92400e":"";
   var ht=tlFrom||tlTo;$("fc-time").textContent=ht?"Active":"All";$("fc-time").style.background=ht?"#fef3c7":"";$("fc-time").style.color=ht?"#92400e":"";
 }
+function toggleSource(s){if(s==="mpc"){showMpc=!showMpc;$("ds-mpc").classList.toggle("on",showMpc);}else{showBp=!showBp;$("ds-bp").classList.toggle("on",showBp);}rebuildAll();}
 
-/* ---- SOURCE TOGGLE ---- */
-function toggleSource(s){
-  if(s==="mpc"){showMpc=!showMpc;$("ds-mpc").classList.toggle("on",showMpc);}
-  else{showBp=!showBp;$("ds-bp").classList.toggle("on",showBp);}
-  rebuildAll();
-}
-
-/* ---- FILTER ---- */
+/* ---- FILTER & RENDER ---- */
 function flt(){
-  var l=all.filter(function(p){
-    if(!activeStatuses.has(p.st))return false;
-    if(p.tp&&!activeTypes.has(p.tp))return false;
-    if(p.app&&!activeApps.has(p.app))return false;
-    if(tlFrom&&p.datePrimary&&p.datePrimary<tlFrom)return false;
-    if(tlTo&&p.datePrimary&&p.datePrimary>tlTo)return false;
-    return true;
-  });
+  var l=all.filter(function(p){if(!activeStatuses.has(p.st))return false;if(p.tp&&!activeTypes.has(p.tp))return false;if(p.app&&!activeApps.has(p.app))return false;if(tlFrom&&p.datePrimary&&p.datePrimary<tlFrom)return false;if(tlTo&&p.datePrimary&&p.datePrimary>tlTo)return false;return true;});
   if(qv){var ql=qv.toLowerCase();l=l.filter(function(p){return p.nm.toLowerCase().indexOf(ql)>=0||p.cs.toLowerCase().indexOf(ql)>=0||p.addr.toLowerCase().indexOf(ql)>=0||p.tp.toLowerCase().indexOf(ql)>=0||p.app.toLowerCase().indexOf(ql)>=0||p.cd.toLowerCase().indexOf(ql)>=0||(p.cap&&p.cap.toLowerCase().indexOf(ql)>=0);});}
-  l.sort(function(a,b){return dsc?b.ts-a.ts:a.ts-b.ts;});
-  return l;
+  l.sort(function(a,b){return dsc?b.ts-a.ts:a.ts-b.ts;});return l;
 }
-
 function render(){var l=flt();$("cnt").textContent=l.length;rC(l);rM(l);}
 
 function rC(l){
   var el=$("cl");
   if(!l.length){el.innerHTML='<div class="empty"><p>No matching cases</p><span>Adjust your filters or search</span></div>';return;}
-  // Limit card rendering for performance
-  var show=l.slice(0,500);
-  var fr=document.createDocumentFragment();
-  show.forEach(function(p){
-    var s=si(p.st),c=mk("div","cd"+(sel===p.id?" on":""));
-    var srcPill=p.src==="mpc"?'<span class="pill pill-src pill-mpc">MPC</span>':'<span class="pill pill-src pill-bp">PERMIT</span>';
-    c.innerHTML='<div class="cd-top"><div class="cd-dot" style="background:'+(p.src==="bp"?BP_COLOR:s.c)+'"></div><div class="cd-t">'+trn(p.nm,55)+'</div></div>'+
-      '<div class="cd-pills">'+srcPill+'<span class="pill pill-s" style="background:'+s.c+'">'+s.l+'</span>'+
-      (p.tp?'<span class="pill pill-t">'+trn(p.tp,25)+'</span>':'')+'</div>'+
-      '<div class="cd-addr">'+(p.addr||"No address")+'</div>'+
-      '<div class="cd-m"><span>'+p.cs+'</span>'+(p.ds?'<span>'+p.ds+'</span>':'')+(p.app?'<span>'+trn(p.app,20)+'</span>':'')+'</div>';
-    c.onclick=function(){selP(p);};fr.appendChild(c);
-  });
-  if(l.length>500){var more=mk("div","empty");more.innerHTML='<span>Showing 500 of '+l.length+' — narrow filters to see more</span>';fr.appendChild(more);}
+  var show=l.slice(0,500),fr=document.createDocumentFragment();
+  show.forEach(function(p){var s=si(p.st),c=mk("div","cd"+(sel===p.id?" on":""));
+    var srcP=p.src==="mpc"?'<span class="pill pill-src pill-mpc">MPC</span>':'<span class="pill pill-src pill-bp">PERMIT</span>';
+    c.innerHTML='<div class="cd-top"><div class="cd-dot" style="background:'+(p.src==="bp"?BP_COLOR:s.c)+'"></div><div class="cd-t">'+trn(p.nm,55)+'</div></div><div class="cd-pills">'+srcP+'<span class="pill pill-s" style="background:'+s.c+'">'+s.l+'</span>'+(p.tp?'<span class="pill pill-t">'+trn(p.tp,25)+'</span>':'')+'</div><div class="cd-addr">'+(p.addr||"No address")+'</div><div class="cd-m"><span>'+p.cs+'</span>'+(p.ds?'<span>'+p.ds+'</span>':'')+(p.app?'<span>'+trn(p.app,20)+'</span>':'')+'</div>';
+    c.onclick=function(){selP(p);};fr.appendChild(c);});
+  if(l.length>500){var m=mk("div","empty");m.innerHTML='<span>Showing 500 of '+l.length+' — narrow filters to see more</span>';fr.appendChild(m);}
   el.innerHTML="";el.appendChild(fr);
 }
 
 function rM(l){
-  Object.values(mks).forEach(function(m){map.removeLayer(m);});mks={};
-  // Limit markers for performance
-  var mapped=l.filter(function(p){return p.lat&&p.lng;}).slice(0,5000);
+  cluster.clearLayers();
+  var mapped=l.filter(function(p){return p.lat&&p.lng;}).slice(0,10000);
+  var markers=[];
   mapped.forEach(function(p){
-    var s=si(p.st);
-    var col=p.src==="bp"?BP_COLOR:s.c;
-    var cls=p.src==="bp"?"mk mk-bp":"mk";
+    var s=si(p.st),col=p.src==="bp"?BP_COLOR:s.c,cls=p.src==="bp"?"mk mk-bp":"mk";
     var ic=L.divIcon({className:cls,html:'<div class="mk-d" style="background:'+col+'"></div>',iconSize:[12,12],iconAnchor:[6,6]});
-    var m=L.marker([p.lat,p.lng],{icon:ic}).addTo(map);
+    var m=L.marker([p.lat,p.lng],{icon:ic});
     m.on("click",function(){selP(p);});
     m.bindTooltip("<b>"+p.cs+"</b><br>"+trn(p.nm,40),{direction:"top",offset:[0,-8]});
-    mks[p.id]=m;
+    m._devId=p.id;
+    markers.push(m);
   });
+  cluster.addLayers(markers);
 }
 
 function selP(p){
   sel=p.id;var s=si(p.st);
   $("dn").textContent=p.nm;
   var srcBadge=p.src==="mpc"?'<span class="pill pill-src pill-mpc">MPC CASE</span>':'<span class="pill pill-src pill-bp">BUILDING PERMIT</span>';
-  var h='<div class="dt-bg">'+srcBadge+'<span class="pill pill-s" style="background:'+s.c+'">'+s.l+'</span>'+
-    (p.tp?'<span class="pill pill-t">'+p.tp+'</span>':'')+(p.sub&&p.sub!==p.tp?'<span class="pill pill-t">'+p.sub+'</span>':'')+'</div>';
-  h+=rw("Case / Permit #",p.cs,1);
-  h+=rw("Location",p.addr);
+  var h='<div class="dt-bg">'+srcBadge+'<span class="pill pill-s" style="background:'+s.c+'">'+s.l+'</span>'+(p.tp?'<span class="pill pill-t">'+p.tp+'</span>':'')+(p.sub&&p.sub!==p.tp?'<span class="pill pill-t">'+p.sub+'</span>':'')+'</div>';
+  h+=rw("Case / Permit #",p.cs,1);h+=rw("Location",p.addr);
   if(p.ds)h+=rw("Date",p.ds);
   if(p.src==="mpc"){
-    if(p.hearing)h+=rw("Hearing Date",p.hearing);
-    if(p.mpcDt)h+=rw("MPC Date",p.mpcDt.toISOString().slice(0,10));
-    if(p.per)h+=rw("Permit Type",p.per);
-    if(p.act)h+=rw("MPC Action",p.act);
-    if(p.vote)h+=rw("MPC Vote",p.vote);
-    if(p.bill)h+=rw("Ordinance #",p.bill,1);
-    if(p.ez)h+=rw("Existing Zoning",p.ez,1);
-    if(p.nz)h+=rw("Proposed Zoning",p.nz,1);
-    if(p.acres)h+=rw("Acreage",p.acres);
+    if(p.hearing)h+=rw("Hearing Date",p.hearing);if(p.mpcDt)h+=rw("MPC Date",p.mpcDt.toISOString().slice(0,10));
+    if(p.per)h+=rw("Permit Type",p.per);if(p.act)h+=rw("MPC Action",p.act);if(p.vote)h+=rw("MPC Vote",p.vote);
+    if(p.bill)h+=rw("Ordinance #",p.bill,1);if(p.ez)h+=rw("Existing Zoning",p.ez,1);if(p.nz)h+=rw("Proposed Zoning",p.nz,1);if(p.acres)h+=rw("Acreage",p.acres);
   }
-  if(p.src==="bp"){
-    if(p.issDt)h+=rw("Date Issued",p.issDt.toISOString().slice(0,10));
-    if(p.cost)h+=rw("Construction Cost","$"+Number(p.cost).toLocaleString());
-  }
-  if(p.app)h+=rw(p.src==="bp"?"Contractor":"Applicant",p.app);
-  if(p.rep)h+=rw("Representative",p.rep);
-  if(p.cd)h+=rw("Council District",p.cd);
-  if(p.lead)h+=rw("Staff Lead",p.lead);
-  if(p.cplan)h+=rw("Community Plan",p.cplan);
-  if(p.policy)h+=rw("Policy",p.policy);
-  if(p.parcels)h+=rw("Parcels",p.parcels,1);
+  if(p.src==="bp"){if(p.issDt)h+=rw("Date Issued",p.issDt.toISOString().slice(0,10));if(p.cost)h+=rw("Construction Cost","$"+Number(p.cost).toLocaleString());}
+  if(p.app)h+=rw(p.src==="bp"?"Contractor":"Applicant",p.app);if(p.rep)h+=rw("Representative",p.rep);
+  if(p.cd)h+=rw("Council District",p.cd);if(p.lead)h+=rw("Staff Lead",p.lead);
+  if(p.cplan)h+=rw("Community Plan",p.cplan);if(p.policy)h+=rw("Policy",p.policy);if(p.parcels)h+=rw("Parcels",p.parcels,1);
   if(p.cap)h+='<div style="margin-top:14px;padding:12px;background:var(--g50);border-radius:var(--rs);font-size:12px;color:var(--g600);line-height:1.5">'+p.cap+'</div>';
-  h+='<a class="dt-lk" href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank" rel="noopener">View on Official Tracker</a>';
-  $("db").innerHTML=h;
-  $("dt").classList.add("open");
-  if(p.lat&&p.lng)map.flyTo([p.lat,p.lng],15,{duration:0.4});
+
+  // Property lookup links section
+  h+='<div class="dt-sep">Property Lookup</div>';
+  // Link to Nashville Parcel Viewer (works with lat/lng)
+  if(p.lat&&p.lng){
+    h+='<a class="dt-lk" href="https://maps.nashville.gov/ParcelViewer/?x='+p.lng+'&y='+p.lat+'" target="_blank" rel="noopener">&#128506; View Parcel Details &amp; Sales History</a>';
+  }
+  // Link to Property Assessor
+  h+='<a class="dt-lk" href="https://www.padctn.org/prc/" target="_blank" rel="noopener">&#127968; Property Assessor (Ownership, Tax, Sales)</a>';
+  // Link to Register of Deeds
+  h+='<a class="dt-lk" href="https://www.davidsonportal.com" target="_blank" rel="noopener">&#128221; Register of Deeds (Transfers &amp; Deeds)</a>';
+  // Official dev tracker
+  h+='<a class="dt-lk" href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank" rel="noopener">&#128204; Official Development Tracker</a>';
+
+  $("db").innerHTML=h;$("dt").classList.add("open");
+  if(p.lat&&p.lng)map.flyTo([p.lat,p.lng],16,{duration:0.4});
   document.querySelectorAll(".cd").forEach(function(c){c.classList.remove("on");});
   var idx=flt().findIndex(function(x){return x.id===p.id;});
-  var cds=document.querySelectorAll(".cd");
-  if(cds[idx]){cds[idx].classList.add("on");cds[idx].scrollIntoView({behavior:"smooth",block:"nearest"});}
+  var cds=document.querySelectorAll(".cd");if(cds[idx]){cds[idx].classList.add("on");cds[idx].scrollIntoView({behavior:"smooth",block:"nearest"});}
 }
 
 /* ---- HELPERS ---- */
@@ -576,18 +452,7 @@ function $(id){return document.getElementById(id);}
 function mk(t,c){var e=document.createElement(t);e.className=c;return e;}
 function trn(s,n){return(!s||s.length<=n)?s||"":s.slice(0,n-1)+"...";}
 function rw(l,v,m){return'<div class="dt-r"><span class="dt-l">'+l+'</span><span class="dt-v'+(m?' mo':'')+'">'+( v||"")+'</span></div>';}
-
-function buildLg(){
-  var el=$("lgi");el.innerHTML="";
-  var seen={};
-  mpcData.forEach(function(p){if(!seen[p.st]){seen[p.st]=true;}});
-  Object.keys(seen).sort().forEach(function(s){
-    var info=si(s);
-    var d=document.createElement("div");d.className="lgi";
-    d.innerHTML='<div class="lgs" style="background:'+info.c+'"></div>'+info.l;
-    el.appendChild(d);
-  });
-}
+function buildLg(){var el=$("lgi");el.innerHTML="";var seen={};mpcData.forEach(function(p){if(!seen[p.st])seen[p.st]=true;});Object.keys(seen).sort().forEach(function(s){var i=si(s);var d=document.createElement("div");d.className="lgi";d.innerHTML='<div class="lgs" style="background:'+i.c+'"></div>'+i.l;el.appendChild(d);});}
 
 /* ---- EVENTS ---- */
 $("dx").onclick=function(){$("dt").classList.remove("open");sel=null;document.querySelectorAll(".cd").forEach(function(c){c.classList.remove("on");});};
@@ -600,58 +465,27 @@ map.on("click",function(){if(lgO){lgO=false;$("lgp").classList.remove("open");}}
 /* ---- LOAD ---- */
 async function loadMPC(){
   $("lm").textContent="Loading MPC cases...";$("ls").textContent="Fetching all pages...";
-  try{
-    var json=await fetchPaginated(MPC_DIRECT,"MPC",function(n){$("ls").textContent=n+" MPC records loaded...";$("pf").style.width=Math.min(n/8000*50,50)+"%";});
-    mpcData=parseMPC(json);
-    $("ds-mpc-cnt").textContent=mpcData.length;
-    return true;
-  }catch(e){
-    // Try Netlify function fallback
-    try{
-      $("ls").textContent="Trying backup...";
-      var res=await fetch(MPC_FN);var j=await res.json();
-      if(j.features){mpcData=parseMPC(j);$("ds-mpc-cnt").textContent=mpcData.length;return true;}
-    }catch(e2){}
-    return false;
-  }
+  try{var j=await fetchPaginated(MPC_URL,function(n){$("ls").textContent=n+" MPC records...";$("pf").style.width=Math.min(n/8000*50,50)+"%";});mpcData=parseMPC(j);$("ds-mpc-cnt").textContent=mpcData.length;return true;}
+  catch(e){try{$("ls").textContent="Trying backup...";var r=await fetch(MPC_FN);var j2=await r.json();if(j2.features){mpcData=parseMPC(j2);$("ds-mpc-cnt").textContent=mpcData.length;return true;}}catch(e2){}return false;}
 }
-
 async function loadBP(){
   $("lm").textContent="Loading building permits...";$("ls").textContent="Fetching permit data...";
-  try{
-    var json=await fetchPaginated(BP_DIRECT,"BP",function(n){$("ls").textContent=n+" permit records loaded...";$("pf").style.width=50+Math.min(n/80000*50,50)+"%";});
-    bpData=parseBP(json);
-    $("ds-bp-cnt").textContent=bpData.length;
-    return true;
-  }catch(e){
-    // Try Netlify function fallback
-    try{
-      $("ls").textContent="Trying backup...";
-      var res=await fetch(BP_FN);var j=await res.json();
-      if(j.features){bpData=parseBP(j);$("ds-bp-cnt").textContent=bpData.length;return true;}
-    }catch(e2){}
-    return false;
-  }
+  try{var j=await fetchPaginated(BP_URL,function(n){$("ls").textContent=n+" permit records...";$("pf").style.width=50+Math.min(n/80000*50,50)+"%";});bpData=parseBP(j);$("ds-bp-cnt").textContent=bpData.length;return true;}
+  catch(e){try{$("ls").textContent="Trying backup...";var r=await fetch(BP_FN);var j2=await r.json();if(j2.features){bpData=parseBP(j2);$("ds-bp-cnt").textContent=bpData.length;return true;}}catch(e2){}return false;}
 }
-
 async function load(){
-  var mpcOk=await loadMPC();
-  var bpOk=await loadBP();
-
-  $("pf").style.width="100%";
-  $("ld").classList.add("h");
-
-  if(mpcOk||bpOk){
+  var mOk=await loadMPC();var bOk=await loadBP();
+  $("pf").style.width="100%";$("ld").classList.add("h");
+  if(mOk||bOk){
     $("sp").className="spill live";$("sp").textContent="Live";
-    if(!bpOk){$("ds-bp").style.opacity=".4";$("ds-bp-cnt").textContent="N/A";showBp=false;$("ds-bp").classList.remove("on");}
-    if(!mpcOk){$("ds-mpc").style.opacity=".4";$("ds-mpc-cnt").textContent="N/A";showMpc=false;$("ds-mpc").classList.remove("on");}
+    if(!bOk){$("ds-bp").style.opacity=".4";$("ds-bp-cnt").textContent="N/A";showBp=false;$("ds-bp").classList.remove("on");}
+    if(!mOk){$("ds-mpc").style.opacity=".4";$("ds-mpc-cnt").textContent="N/A";showMpc=false;$("ds-mpc").classList.remove("on");}
     rebuildAll();
   }else{
     $("sp").className="spill off";$("sp").textContent="Offline";
     $("cl").innerHTML='<div class="empty"><p>Unable to load data</p><span>Nashville data services may be temporarily unavailable.<br><a href="https://maps.nashville.gov/DevelopmentTracker/" target="_blank">View official tracker</a></span></div>';
   }
 }
-
 load();
 </script>
 </body>
