@@ -17,116 +17,80 @@ var SOURCES = {
   }
 };
 
+async function getCount(baseUrl) {
+  var params = new URLSearchParams({
+    where: "1=1",
+    returnCountOnly: "true",
+    f: "json"
+  });
+  try {
+    var r = await fetch(baseUrl + "?" + params.toString());
+    var j = await r.json();
+    return j.count || 0;
+  } catch (e) {
+    return -1;
+  }
+}
+
+async function fetchPage(baseUrl, offset, pageSize, oidField) {
+  var params = new URLSearchParams({
+    where: "1=1",
+    outFields: "*",
+    outSR: "4326",
+    f: "json",
+    resultRecordCount: String(pageSize),
+    resultOffset: String(offset),
+    orderByFields: oidField + " ASC",
+    returnGeometry: "true"
+  });
+  var r = await fetch(baseUrl + "?" + params.toString());
+  return await r.json();
+}
+
+async function fetchPageByOID(baseUrl, minOid, pageSize, oidField) {
+  var params = new URLSearchParams({
+    where: oidField + " > " + minOid,
+    outFields: "*",
+    outSR: "4326",
+    f: "json",
+    resultRecordCount: String(pageSize),
+    returnGeometry: "true"
+  });
+  var r = await fetch(baseUrl + "?" + params.toString());
+  return await r.json();
+}
+
 export default async (request, context) => {
   try {
     var url = new URL(request.url);
     var source = url.searchParams.get("source") || "mpc";
     var cfg = SOURCES[source] || SOURCES.mpc;
 
+    // Step 1: Get total count
+    var totalCount = await getCount(cfg.url);
+    
     var allFeatures = [];
-    var offset = 0;
-    var hasMore = true;
     var fields = null;
     var geomType = null;
     var spatialRef = null;
-    var useOffset = true;
+    var method = "unknown";
 
-    while (hasMore) {
-      var params = new URLSearchParams({
-        where: "1=1",
-        outFields: "*",
-        outSR: "4326",
-        f: "json",
-        resultRecordCount: String(cfg.page),
-        returnGeometry: "true"
-      });
+    // Step 2: Try offset-based pagination first
+    var offset = 0;
+    var offsetWorks = true;
 
-      // Add pagination params
-      if (useOffset && offset > 0) {
-        params.set("resultOffset", String(offset));
-      }
-
-      // Try ordering by OID for consistent pagination
-      params.set("orderByFields", cfg.oid + " ASC");
-
-      var fetchUrl = cfg.url + "?" + params.toString();
-      var res = await fetch(fetchUrl);
-      var text = await res.text();
+    while (offset < Math.max(totalCount, 1) || offset === 0) {
       var json;
-
       try {
-        json = JSON.parse(text);
+        json = await fetchPage(cfg.url, offset, cfg.page, cfg.oid);
       } catch (e) {
+        offsetWorks = false;
         break;
       }
 
-      // Handle errors - fall back to simpler query
+      // If server returns error, offset pagination not supported
       if (json.error) {
-        if (offset === 0) {
-          // Try without orderByFields and offset (older MapServers)
-          var p2 = new URLSearchParams({
-            where: "1=1",
-            outFields: "*",
-            outSR: "4326",
-            f: "json",
-            resultRecordCount: String(cfg.page),
-            returnGeometry: "true"
-          });
-          var r2 = await fetch(cfg.url + "?" + p2.toString());
-          var t2 = await r2.text();
-          try {
-            json = JSON.parse(t2);
-          } catch (e2) {
-            break;
-          }
-          if (json.error) break;
-          useOffset = false;
-          // If this simpler query works, get what we can
-          if (json.features) allFeatures = json.features;
-          if (json.fields) fields = json.fields;
-          if (json.geometryType) geomType = json.geometryType;
-          if (json.spatialReference) spatialRef = json.spatialReference;
-
-          // If there are more records but we can't paginate with offset,
-          // try using OID-based pagination
-          if (json.exceededTransferLimit && json.features && json.features.length > 0) {
-            var lastOid = 0;
-            json.features.forEach(function(f) {
-              var oid = f.attributes[cfg.oid] || f.attributes.OBJECTID || f.attributes.OID || 0;
-              if (oid > lastOid) lastOid = oid;
-            });
-
-            // Page through using WHERE clause on OID
-            var morePaging = true;
-            while (morePaging) {
-              var p3 = new URLSearchParams({
-                where: cfg.oid + " > " + lastOid,
-                outFields: "*",
-                outSR: "4326",
-                f: "json",
-                resultRecordCount: String(cfg.page),
-                returnGeometry: "true"
-              });
-              var r3 = await fetch(cfg.url + "?" + p3.toString());
-              var t3 = await r3.text();
-              var j3;
-              try { j3 = JSON.parse(t3); } catch (e3) { break; }
-              if (j3.error || !j3.features || j3.features.length === 0) {
-                morePaging = false;
-                break;
-              }
-              allFeatures = allFeatures.concat(j3.features);
-              j3.features.forEach(function(f) {
-                var oid = f.attributes[cfg.oid] || f.attributes.OBJECTID || f.attributes.OID || 0;
-                if (oid > lastOid) lastOid = oid;
-              });
-              if (!j3.exceededTransferLimit || j3.features.length < cfg.page) morePaging = false;
-              if (allFeatures.length >= 100000) morePaging = false;
-            }
-          }
-          hasMore = false;
-          continue;
-        }
+        offsetWorks = false;
         break;
       }
 
@@ -137,13 +101,55 @@ export default async (request, context) => {
       if (json.features && json.features.length > 0) {
         allFeatures = allFeatures.concat(json.features);
         offset += json.features.length;
+      } else {
+        break;
       }
 
-      if (!json.features || json.features.length < cfg.page || !json.exceededTransferLimit) {
-        hasMore = false;
-      }
+      // Safety: if we got fewer than requested, we're done
+      if (json.features.length < cfg.page) break;
+      // Safety: hard cap
+      if (allFeatures.length >= 100000) break;
+    }
 
-      if (offset >= 100000) hasMore = false;
+    if (offsetWorks && allFeatures.length > 0) {
+      method = "offset";
+    }
+
+    // Step 3: If offset didn't work, try OID-based pagination
+    if (!offsetWorks || allFeatures.length === 0) {
+      allFeatures = [];
+      var lastOid = -1;
+      var keepGoing = true;
+
+      while (keepGoing) {
+        var json2;
+        try {
+          json2 = await fetchPageByOID(cfg.url, lastOid, cfg.page, cfg.oid);
+        } catch (e) {
+          break;
+        }
+        if (json2.error || !json2.features || json2.features.length === 0) break;
+
+        if (!fields && json2.fields) fields = json2.fields;
+        if (!geomType && json2.geometryType) geomType = json2.geometryType;
+        if (!spatialRef && json2.spatialReference) spatialRef = json2.spatialReference;
+
+        allFeatures = allFeatures.concat(json2.features);
+
+        // Find max OID in this batch
+        var maxOid = -1;
+        json2.features.forEach(function(f) {
+          var oid = f.attributes[cfg.oid] || f.attributes.OBJECTID || f.attributes.OID || 0;
+          if (oid > maxOid) maxOid = oid;
+        });
+
+        if (maxOid <= lastOid) break;
+        lastOid = maxOid;
+
+        if (json2.features.length < cfg.page) break;
+        if (allFeatures.length >= 100000) break;
+      }
+      if (allFeatures.length > 0) method = "oid";
     }
 
     var result = {
@@ -152,7 +158,9 @@ export default async (request, context) => {
       fields: fields,
       features: allFeatures,
       totalCount: allFeatures.length,
-      source: source
+      serverCount: totalCount,
+      source: source,
+      method: method
     };
 
     return new Response(JSON.stringify(result), {
@@ -165,7 +173,7 @@ export default async (request, context) => {
     });
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: "Fetch failed: " + err.message }),
+      JSON.stringify({ error: "Fetch failed: " + err.message, stack: err.stack }),
       { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
     );
   }
