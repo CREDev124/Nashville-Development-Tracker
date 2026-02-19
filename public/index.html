@@ -228,7 +228,7 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 /* ---- CONFIG ---- */
 var MPC_URL="https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services/Development_Tracker_Cases_view/FeatureServer/1/query";
 var BP_URL="https://maps.nashville.gov/arcgis/rest/services/Codes/BuildingPermits/MapServer/0/query";
-var MPC_FN="/api/mpc-cases", BP_FN="/api/building-permits", PAGE=2000;
+var MPC_FN="/.netlify/functions/nashville-data?source=mpc", BP_FN="/.netlify/functions/nashville-data?source=bp", PAGE=2000;
 var PARCEL_TILES="https://maps.nashville.gov/arcgis/rest/services/Cadastral/Parcels/MapServer/tile/{z}/{y}/{x}";
 var ASSESSOR_URL="https://www.padctn.org/prc/property-detail?mapGroup=";
 
@@ -434,7 +434,7 @@ function selP(p){
     h+='<a class="dt-lk" href="https://maps.nashville.gov/ParcelViewer/?x='+p.lng+'&y='+p.lat+'" target="_blank" rel="noopener">&#128506; View Parcel Details &amp; Sales History</a>';
   }
   // Link to Property Assessor
-  h+='<a class="dt-lk" href="https://www.padctn.org/prc/" target="_blank" rel="noopener">&#127968; Property Assessor (Ownership, Tax, Sales)</a>';
+  h+='<a class="dt-lk" href="https://www.padctn.org" target="_blank" rel="noopener">&#127968; Property Assessor (Ownership, Tax, Sales)</a>';
   // Link to Register of Deeds
   h+='<a class="dt-lk" href="https://www.davidsonportal.com" target="_blank" rel="noopener">&#128221; Register of Deeds (Transfers &amp; Deeds)</a>';
   // Official dev tracker
@@ -465,8 +465,11 @@ map.on("click",function(){if(lgO){lgO=false;$("lgp").classList.remove("open");}}
 /* ---- LOAD ---- */
 async function loadMPC(){
   $("lm").textContent="Loading MPC cases...";$("ls").textContent="Fetching all pages...";
-  try{var j=await fetchPaginated(MPC_URL,function(n){$("ls").textContent=n+" MPC records...";$("pf").style.width=Math.min(n/8000*50,50)+"%";});mpcData=parseMPC(j);$("ds-mpc-cnt").textContent=mpcData.length;return true;}
-  catch(e){try{$("ls").textContent="Trying backup...";var r=await fetch(MPC_FN);var j2=await r.json();if(j2.features){mpcData=parseMPC(j2);$("ds-mpc-cnt").textContent=mpcData.length;return true;}}catch(e2){}return false;}
+  // Try Netlify function first (handles pagination server-side)
+  try{$("ls").textContent="Loading MPC via function...";var r=await fetch(MPC_FN);var j2=await r.json();if(j2.features&&j2.features.length>0){mpcData=parseMPC(j2);$("ds-mpc-cnt").textContent=mpcData.length;return true;}}catch(e2){}
+  // Fallback: try direct ArcGIS Online (CORS-enabled, paginated)
+  try{var j=await fetchPaginated(MPC_URL,function(n){$("ls").textContent=n+" MPC records...";$("pf").style.width=Math.min(n/8000*50,50)+"%";});mpcData=parseMPC(j);if(mpcData.length>0){$("ds-mpc-cnt").textContent=mpcData.length;return true;}}catch(e){}
+  return false;
 }
 async function loadBP(){
   $("lm").textContent="Loading building permits...";$("ls").textContent="Fetching permit data...";
