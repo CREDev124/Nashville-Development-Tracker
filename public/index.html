@@ -227,7 +227,7 @@ body{font-family:'Instrument Sans',-apple-system,sans-serif;background:var(--g50
 <script>
 /* ---- CONFIG ---- */
 var MPC_URL="https://services2.arcgis.com/HdTo6HJqh92wn4D8/arcgis/rest/services/Development_Tracker_Cases_view/FeatureServer/1/query";
-var BP_URL="https://services2.arcgis.com/CyVvlIiUfRBmMQuu/arcgis/rest/services/Building_Permits_Applications_view/FeatureServer/0/query";
+var BP_URL="https://maps.nashville.gov/arcgis/rest/services/Codes/BuildingPermits/MapServer/0/query";
 var MPC_FN="/api/mpc-cases", BP_FN="/api/building-permits", PAGE=2000;
 var PARCEL_TILES="https://maps.nashville.gov/arcgis/rest/services/Cadastral/Parcels/MapServer/tile/{z}/{y}/{x}";
 var ASSESSOR_URL="https://www.padctn.org/prc/property-detail?mapGroup=";
@@ -292,24 +292,24 @@ function parseBP(json){
   if(!json.features)return[];
   return json.features.filter(function(f){return f.geometry&&f.geometry.x!=null;}).map(function(f,i){
     var a=f.attributes||{};
-    var dt=a.date_entered?new Date(a.date_entered):a.DATE_ENTERED?new Date(a.DATE_ENTERED):null;
-    var issDt=a.date_issued?new Date(a.date_issued):a.DATE_ISSUED?new Date(a.DATE_ISSUED):null;
-    var dp=dt||issDt;
-    var pn=a.permit_number||a.PERMIT_NUMBER||a.permit_num||a.PERMIT_NUM||"";
-    var addr=a.address||a.ADDRESS||a.mapped_location_address||a.location||"";
-    var pType=a.permit_type_description||a.PERMIT_TYPE_DESCRIPTION||a.permit_type||a.PERMIT_TYPE||a.type_description||a.TYPE_DESCRIPTION||"";
-    var pSub=a.permit_sub_type_description||a.PERMIT_SUB_TYPE_DESCRIPTION||a.permit_subtype||"";
-    var status=a.status||a.STATUS||a.permit_status||a.PERMIT_STATUS||"";
-    var contractor=a.contractor_company||a.CONTRACTOR_COMPANY||a.contact||a.CONTACT||"";
-    var desc=a.description||a.DESCRIPTION||a.purpose||a.PURPOSE||"";
-    var cost=a.const_cost||a.CONST_COST||a.construction_cost||"";
-    var ns=status;if(status){var sl=status.toLowerCase();if(sl.indexOf("issue")>=0)ns="Issued";else if(sl.indexOf("close")>=0)ns="Closed";else if(sl.indexOf("cancel")>=0)ns="Cancelled";else if(sl.indexOf("expire")>=0)ns="Expired";else if(sl.indexOf("active")>=0||sl.indexOf("review")>=0)ns="Active";else if(sl.indexOf("pend")>=0)ns="Pending";else if(sl.indexOf("approv")>=0)ns="Approved";}
-    return{id:"bp-"+(a.OBJECTID||i),src:"bp",cs:pn,nm:desc||pType||pn||"Building Permit",
-      tp:pType+(pSub?" - "+pSub:""),sub:pSub,per:pType,st:ns||"Active",addr:addr,bill:"",
-      mpcDt:null,acceptDt:dt,datePrimary:dp,ds:dp?dp.toISOString().slice(0,10):"",ts:dp?dp.getTime():0,
-      lat:f.geometry.y,lng:f.geometry.x,act:"",vote:"",app:contractor,rep:"",cd:"",lead:"",
-      cap:desc,ez:"",nz:"",acres:"",policy:"",cplan:"",parcels:"",hearing:"",
-      cost:cost,issDt:issDt,mapGroup:""};
+    var aDt=a.DATE_ACCEPTED?new Date(a.DATE_ACCEPTED):null;
+    var iDt=a.DATE_ISSUED?new Date(a.DATE_ISSUED):null;
+    var fDt=a.FINALDATE?new Date(a.FINALDATE):null;
+    var dp=aDt||iDt;
+    var status=a.STATUS_CODE||"";
+    var ns=status;
+    if(status){var sl=status.toUpperCase();if(sl==="DONE"||sl==="CLOSED")ns="Closed";else if(sl==="ISSUED"||sl==="ISS")ns="Issued";else if(sl==="ACTIVE"||sl==="REVIEW"||sl==="OPEN")ns="Active";else if(sl==="PEND"||sl==="PENDING")ns="Pending";else if(sl==="CANCEL"||sl==="CANCELLED"||sl==="VOID")ns="Cancelled";else if(sl==="EXPIRED"||sl==="EXP")ns="Expired";else if(sl==="APPROVED"||sl==="APPR")ns="Approved";}
+    var tp=a.CASE_TYPE_DESC||"";
+    var sub=a.SUB_TYPE_DESC||"";
+    return{id:"bp-"+(a.OID||i),src:"bp",cs:a.CASE_NUMBER||"",
+      nm:sub||tp||a.CASE_NUMBER||"Building Permit",
+      tp:tp,sub:sub,per:tp,st:ns||"Active",
+      addr:a.LOCATION||"",bill:"",
+      mpcDt:null,acceptDt:aDt,datePrimary:dp,ds:dp?dp.toISOString().slice(0,10):"",ts:dp?dp.getTime():0,
+      lat:f.geometry.y,lng:f.geometry.x,act:a.FINALCODE||"",vote:"",
+      app:"",rep:"",cd:"",lead:"",
+      cap:a.SCOPE||"",ez:"",nz:"",acres:"",policy:"",cplan:"",parcels:a.APN||"",hearing:"",
+      cost:a.CONSTVAL||"",issDt:iDt,finalDt:fDt,sqft:a.BLDG_SQ_FT||"",units:a.UNITS||"",mapGroup:""};
   });
 }
 
@@ -421,7 +421,7 @@ function selP(p){
     if(p.per)h+=rw("Permit Type",p.per);if(p.act)h+=rw("MPC Action",p.act);if(p.vote)h+=rw("MPC Vote",p.vote);
     if(p.bill)h+=rw("Ordinance #",p.bill,1);if(p.ez)h+=rw("Existing Zoning",p.ez,1);if(p.nz)h+=rw("Proposed Zoning",p.nz,1);if(p.acres)h+=rw("Acreage",p.acres);
   }
-  if(p.src==="bp"){if(p.issDt)h+=rw("Date Issued",p.issDt.toISOString().slice(0,10));if(p.cost)h+=rw("Construction Cost","$"+Number(p.cost).toLocaleString());}
+  if(p.src==="bp"){if(p.issDt)h+=rw("Date Issued",p.issDt.toISOString().slice(0,10));if(p.finalDt)h+=rw("Final Date",p.finalDt.toISOString().slice(0,10));if(p.cost)h+=rw("Construction Value","$"+Number(p.cost).toLocaleString());if(p.sqft)h+=rw("Building Sq Ft",Number(p.sqft).toLocaleString());if(p.units)h+=rw("Units",p.units);if(p.parcels)h+=rw("Parcel ID",p.parcels,1);}
   if(p.app)h+=rw(p.src==="bp"?"Contractor":"Applicant",p.app);if(p.rep)h+=rw("Representative",p.rep);
   if(p.cd)h+=rw("Council District",p.cd);if(p.lead)h+=rw("Staff Lead",p.lead);
   if(p.cplan)h+=rw("Community Plan",p.cplan);if(p.policy)h+=rw("Policy",p.policy);if(p.parcels)h+=rw("Parcels",p.parcels,1);
@@ -470,8 +470,11 @@ async function loadMPC(){
 }
 async function loadBP(){
   $("lm").textContent="Loading building permits...";$("ls").textContent="Fetching permit data...";
-  try{var j=await fetchPaginated(BP_URL,function(n){$("ls").textContent=n+" permit records...";$("pf").style.width=50+Math.min(n/80000*50,50)+"%";});bpData=parseBP(j);$("ds-bp-cnt").textContent=bpData.length;return true;}
-  catch(e){try{$("ls").textContent="Trying backup...";var r=await fetch(BP_FN);var j2=await r.json();if(j2.features){bpData=parseBP(j2);$("ds-bp-cnt").textContent=bpData.length;return true;}}catch(e2){}return false;}
+  // On-premise server likely blocks CORS, so try Netlify function first
+  try{$("ls").textContent="Loading via proxy...";var r=await fetch(BP_FN);var j2=await r.json();if(j2.features&&j2.features.length>0){bpData=parseBP(j2);$("ds-bp-cnt").textContent=bpData.length;return true;}}catch(e2){}
+  // Fallback: try direct (may work if CORS is enabled)
+  try{var j=await fetchPaginated(BP_URL,function(n){$("ls").textContent=n+" permit records...";$("pf").style.width=50+Math.min(n/80000*50,50)+"%";});bpData=parseBP(j);if(bpData.length>0){$("ds-bp-cnt").textContent=bpData.length;return true;}}catch(e){}
+  return false;
 }
 async function load(){
   var mOk=await loadMPC();var bOk=await loadBP();
