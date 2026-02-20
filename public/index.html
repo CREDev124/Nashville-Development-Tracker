@@ -302,13 +302,15 @@ function parseBP(json){
     var st="Issued";
     // Convert geometry from Web Mercator to lat/lng if needed
     var lat,lng;
-    if(f.geometry.spatialReference&&f.geometry.spatialReference.wkid===4326){lat=f.geometry.y;lng=f.geometry.x;}
+    // Prefer Lat/Lon attribute fields (already WGS84)
+    if(a.Lat&&a.Lon){lat=a.Lat;lng=a.Lon;}
     else{
-      // Web Mercator to WGS84
       var x=f.geometry.x,y=f.geometry.y;
-      lng=(x/20037508.34)*180;
-      lat=(y/20037508.34)*180;
-      lat=180/Math.PI*(2*Math.atan(Math.exp(lat*Math.PI/180))-Math.PI/2);
+      if(Math.abs(x)>180){
+        lng=(x/20037508.34)*180;
+        lat=(y/20037508.34)*180;
+        lat=180/Math.PI*(2*Math.atan(Math.exp(lat*Math.PI/180))-Math.PI/2);
+      }else{lat=y;lng=x;}
     }
     return{id:"bp-"+(a.ObjectId||i),src:"bp",cs:a.Permit__||"",
       nm:sub||tp||a.Permit__||"Building Permit",
