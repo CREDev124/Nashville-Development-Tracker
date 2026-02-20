@@ -327,21 +327,28 @@ function parseBP(json){
 async function fetchPaginated(url,onProg,oidField){
   var oid=oidField||"OBJECTID";
   var feats=[],off=0,fields=null,gT=null,sR=null;
-  // Try offset-based pagination first
   var useOffset=true;
+  var actualPage=PAGE;// will adjust after first response
   while(true){
-    var p=new URLSearchParams({where:"1=1",outFields:"*",outSR:"4326",f:"json",resultRecordCount:String(PAGE),returnGeometry:"true"});
+    var p=new URLSearchParams({where:"1=1",outFields:"*",outSR:"4326",f:"json",resultRecordCount:String(actualPage),returnGeometry:"true"});
     if(useOffset){p.set("resultOffset",String(off));p.set("orderByFields",oid+" ASC");}
     var r=await fetch(url+"?"+p.toString());var j=await r.json();
     if(j.error){
-      if(feats.length===0&&useOffset){useOffset=false;continue;}// retry without offset
+      if(feats.length===0&&useOffset){useOffset=false;continue;}
       throw new Error(j.error.message||"Query error");
     }
     if(!fields&&j.fields)fields=j.fields;if(!gT&&j.geometryType)gT=j.geometryType;if(!sR&&j.spatialReference)sR=j.spatialReference;
-    if(j.features&&j.features.length>0){feats=feats.concat(j.features);off+=j.features.length;if(onProg)onProg(feats.length);}
+    if(j.features&&j.features.length>0){
+      feats=feats.concat(j.features);off+=j.features.length;if(onProg)onProg(feats.length);
+      // Auto-detect actual page size from first response
+      if(feats.length===j.features.length)actualPage=j.features.length;
+    }
     else break;
-    if(j.features.length<PAGE)break;
-    if(!useOffset)break;// can't paginate without offset, take what we got
+    // Keep going if: we got a full page OR server says there's more
+    var gotFullPage=j.features.length>=actualPage;
+    var serverSaysMore=j.exceededTransferLimit===true;
+    if(!gotFullPage&&!serverSaysMore)break;
+    if(!useOffset)break;
     if(off>=100000)break;
   }
   // If offset didn't work, try OID-based pagination
@@ -349,13 +356,14 @@ async function fetchPaginated(url,onProg,oidField){
     var lastOid=0;
     feats.forEach(function(f){var v=f.attributes[oid]||0;if(v>lastOid)lastOid=v;});
     while(true){
-      var p2=new URLSearchParams({where:oid+">"+lastOid,outFields:"*",outSR:"4326",f:"json",resultRecordCount:String(PAGE),returnGeometry:"true"});
+      var p2=new URLSearchParams({where:oid+">"+lastOid,outFields:"*",outSR:"4326",f:"json",resultRecordCount:String(actualPage),returnGeometry:"true"});
       var r2=await fetch(url+"?"+p2.toString());var j2=await r2.json();
       if(j2.error||!j2.features||j2.features.length===0)break;
       feats=feats.concat(j2.features);if(onProg)onProg(feats.length);
       var mx=0;j2.features.forEach(function(f){var v=f.attributes[oid]||0;if(v>mx)mx=v;});
       if(mx<=lastOid)break;lastOid=mx;
-      if(j2.features.length<PAGE)break;if(feats.length>=100000)break;
+      if(j2.features.length<actualPage&&j2.exceededTransferLimit!==true)break;
+      if(feats.length>=100000)break;
     }
   }
   return{features:feats,fields:fields};
